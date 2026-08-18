@@ -76,6 +76,23 @@ otbn_library(
 )
 
 otbn_library(
+    name = "mceliece_keygen_row_ops",
+    srcs = [
+        "mceliece_keygen_row_ops.s",
+    ],
+)
+
+otbn_binary(
+    name = "run_mceliece_keygen_row_ops",
+    srcs = [
+        "run_mceliece_keygen_row_ops.s",
+    ],
+    deps = [
+        ":mceliece_keygen_row_ops",
+    ],
+)
+
+otbn_library(
     name = "modexp",
     srcs = [
         "modexp.s",

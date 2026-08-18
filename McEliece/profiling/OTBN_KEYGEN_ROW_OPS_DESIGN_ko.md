@@ -2,7 +2,8 @@
 
 작성일: 2026-08-18
 대상: `crypto_kem/348864/vec/pk_gen.c`의 피벗 탐색과 전방소거
-현재 단계: OTBN ISA 정의 및 ISS 시뮬레이터 프로토타입. RTL은 아직 미구현.
+현재 단계: OTBN ISA/ISS와 4행 DMEM 타일 어셈블리 커널 구현. RTL과 전체
+`pk_gen` 호스트 오프로딩은 아직 미구현.
 
 ## 1. 프로파일 근거
 
@@ -79,8 +80,14 @@ WDR를 갱신하는 24개의 WDR 연산이 그대로 필요하다. 실제 데이
 - ISA와 인코딩: `opentitan/hw/ip/otbn/data/bignum-insns.yml`,
   `opentitan/hw/ip/otbn/data/enc-schemes.yml`
 - ISS 의미 모델: `opentitan/hw/ip/otbn/dv/otbnsim/sim/insn.py`
+- 실제 OTBN 행 연산 커널:
+  `opentitan/sw/otbn/crypto/mceliece_keygen_row_ops.s`
+- 독립 실행용 DMEM 인터페이스:
+  `opentitan/sw/otbn/crypto/run_mceliece_keygen_row_ops.s`
 - 랜덤·스케줄 검증:
   `opentitan/hw/ip/otbn/dv/otbnsim/test/mceliece_keygen_test.py`
+- 어셈블·링크·ISS 종단간 검증:
+  `opentitan/hw/ip/otbn/dv/otbnsim/test/mceliece_keygen_row_ops_asm_test.py`
 
 추가된 명령어는 `BN.XORCOND`, `BN.XORCONDN`, `BN.PIVOTMASK4`,
 `BN.ELIMMASK4`다. 인코딩 YAML 로더의 전 명령어 충돌 검사를 통과했다.
@@ -100,3 +107,21 @@ WDR를 갱신하는 24개의 WDR 연산이 그대로 필요하다. 실제 데이
 Mac 환경에서는 의존성 없는 직접 실행으로 모든 랜덤 테스트를 통과했다.
 정식 `pytest` 및 OTBN 어셈블리/RTL 검증은 OpenTitan 의존성이 설치된 Ubuntu
 환경에서 수행한다.
+
+## 7. 실제 어셈블리 커널의 동작
+
+`mceliece_keygen_pivot_batch4`는 현재 행의 여섯 WDR를 `w0..w5`에 한 번
+적재한다. 후보 네 행은 같은 256비트 조각끼리 `w8..w11`에 적재하고,
+`BN.PIVOTMASK4`가 만든 prefix 플래그로 `BN.XORCOND`를 적용한다. 따라서
+원본 C의 후보 네 번 순차 검사를 한 번의 고정 제어 배치로 실행한다.
+
+`mceliece_keygen_elim_batch4`는 피벗 행의 여섯 WDR를 `w0..w5`에 유지한다.
+네 대상 행을 조각별로 `w8..w11`에 올리고 `BN.ELIMMASK4`의 C/M/L/Z를
+재사용하여 네 개의 독립적인 조건부 XOR를 수행한 뒤 DMEM에 저장한다.
+
+한 행은 `mat[0..11] || ops[0..11]`의 24개 64비트 워드를 네 개씩 묶은
+여섯 WDR다. 전체 768행은 OTBN DMEM에 동시에 들어가지 않으므로 호스트가
+현재/피벗 행과 상대 행 네 개를 하나의 타일로 전달해야 한다. 현재 ISA
+프로토타입의 `bit_idx`와 `current_lane`은 즉시값이므로 실행 커널은 호스트가
+선택한 피벗 비트를 staging WDR의 lane별 bit 0으로 정규화해 전달받는다.
+이 staging 및 DMEM 전송 비용은 Ubuntu 사이클 프로파일에 반드시 포함한다.
