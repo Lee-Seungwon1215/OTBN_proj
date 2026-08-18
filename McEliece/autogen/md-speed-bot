@@ -1,0 +1,10 @@
+Microarchitectures are listed in reverse chronological order of when they were introduced.
+
+In the libmceliece distribution,
+`command/mceliece-speed.c` measures libmceliece;
+`benchmarks/*-*` is the output of `mceliece-speed` on various machines;
+and `autogen/md-speed` extracts the table from those measurements.
+
+The table reports only interquartile means of cycle counts.
+See the full output files
+for differences between multiple measurements and the interquartile mean.

@@ -1,0 +1,6 @@
+./configure --prefix=/Users/leeseungwon/RISC-V:OTBN/McEliece/local-install --host=arm64 --clean --no-trim --no-tryifunc --darwin --no-valgrind
+using default compiler gcc -Wall -fPIC -fwrapv -O2; Apple clang version 21.0.0 (clang-2100.1.1.101); Target: arm64-apple-darwin25.5.0; Thread model: posix; InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+using default compiler clang -Wall -fPIC -fwrapv -Qunused-arguments -O2; Apple clang version 21.0.0 (clang-2100.1.1.101); Target: arm64-apple-darwin25.5.0; Thread model: posix; InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+abbreviating C0 = default gcc -Wall -fPIC -fwrapv -O2
+abbreviating C1 = default clang -Wall -fPIC -fwrapv -Qunused-arguments -O2
+configure done

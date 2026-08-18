@@ -1,0 +1,12 @@
+operation sort
+primitive int32
+note: considering machines supporting default
+note: priority 1.0001840322580646 for neon C0
+note: priority 1.0055952884615385 for neon C1
+note: priority 5.393162741935484 for portable4 C0
+note: priority 5.498332711538462 for portable4 C1
+selected default neon C0
+impl neon C0
+impl neon C1
+impl portable4 C0
+impl portable4 C1

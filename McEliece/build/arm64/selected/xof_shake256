@@ -1,0 +1,12 @@
+operation xof
+primitive shake256
+note: considering machines supporting default
+note: priority 1.0043917307692307 for unrollround C1
+note: priority 1.2210032258064516 for unrollround C0
+note: priority 6.662233961538462 for tweet C1
+note: priority 12.187150258064516 for tweet C0
+selected default unrollround C1
+impl tweet C0
+impl tweet C1
+impl unrollround C0
+impl unrollround C1

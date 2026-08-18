@@ -1,0 +1,8 @@
+operation kem
+primitive 460896f
+note: considering machines supporting default
+note: priority 1.0152386346153845 for vec C1
+note: priority 1.7668474193548387 for vec C0
+selected default vec C1
+impl vec C0
+impl vec C1

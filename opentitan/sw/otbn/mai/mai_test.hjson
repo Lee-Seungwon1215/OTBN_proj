@@ -1,0 +1,23 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+{
+  "entrypoint": "main",
+  "input": {
+    "dmem": {
+      # The secrets in 32-bit elements. Each element is < q = 8380417 = 2^23 - 2^13 + 1
+      "secret": "0x004b0797007325a8003f3539006704890028b454007b496800165e680003a981",
+      # The two operands for secAdd, in 32-bit elements. Each element is < q.
+      "operand_a": "0x0000abcd00040506000102030040000000300000002000000010000000000001",
+      "operand_b": "0x0000111100000a0b000101010001000000040000000800000010000000000002",
+    }
+  }
+  "output": {
+    "dmem": {
+      # The secret should be returned unchanged by the B2A/A2B round trip.
+      "result": "0x004b0797007325a8003f3539006704890028b454007b496800165e680003a981",
+      # The per-element sums produced by secAdd (mod 2^32).
+      "result_secadd": "0x0000bcde00040f11000203040041000000340000002800000020000000000003",
+    }
+  }
+}

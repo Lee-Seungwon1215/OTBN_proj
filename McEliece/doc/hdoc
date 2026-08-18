@@ -1,0 +1,10 @@
+/*
+
+All of the stable libmceliece API functions have names beginning
+
+    mceliece{6960119,6688128,8192128,460896,348864}
+
+whereas functions beginning mceliece_ (e.g., functions used for internal
+tests and benchmarks) may change.
+
+*/

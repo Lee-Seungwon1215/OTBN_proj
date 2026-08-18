@@ -1,0 +1,164 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
+module tb;
+  // dep packages
+  import uvm_pkg::*;
+  import dv_utils_pkg::*;
+  import kmac_env_pkg::*;
+  import kmac_test_pkg::*;
+  import kmac_reg_pkg::*;
+
+  // macro includes
+`include "uvm_macros.svh"
+`include "dv_macros.svh"
+
+  wire clk, rst_n, rst_shadowed_n;
+  wire [NUM_MAX_INTERRUPTS-1:0] interrupts;
+  // keymgr/kmac sideload wires
+  keymgr_pkg::hw_key_req_t kmac_sideload_key;
+  // kmac_app interfaces
+  kmac_pkg::app_req_t [NUM_APP_INTF-1:0] app_req;
+  kmac_pkg::app_rsp_t [NUM_APP_INTF-1:0] app_rsp;
+
+  clk_rst_if clk_rst_if(.clk(clk), .rst_n(rst_n));
+  default clocking @(posedge clk); endclocking
+  default disable iff !rst_n;
+
+  rst_shadowed_if rst_shadowed_if(.rst_n(rst_n), .rst_shadowed_n(rst_shadowed_n));
+  kmac_if kmac_if(.clk_i(clk), .rst_ni(rst_n));
+
+  pins_if #(NUM_MAX_INTERRUPTS)  intr_if(interrupts);
+
+  tl_if tl_if(.clk(clk), .rst_n(rst_n));
+
+  key_sideload_if sideload_if(
+    .clk_i        (clk),
+    .rst_ni       (rst_n),
+    .sideload_key (kmac_sideload_key)
+  );
+
+  for (genvar i = 0; i < NUM_APP_INTF; i++) begin : gen_app_if
+    wire kmac_pkg::app_req_t req;
+    wire kmac_pkg::app_rsp_t rsp;
+
+    // In this testbench, the interface is in Host mode, meaning that it will drive req and consume
+    // rsp.
+    assign app_req[i] = req;
+    assign rsp = app_rsp[i];
+
+    kmac_app_if app_if(.clk_i (clk),
+                       .rst_ni(rst_n),
+                       .req   (req),
+                       .rsp   (rsp));
+
+    initial begin
+      uvm_config_db#(virtual kmac_app_if)::set(null,
+                                               $sformatf("*env.m_kmac_app_agent[%0d]*", i),
+                                               "vif",
+                                               app_if);
+    end
+
+    ErrOutputZeros_A:
+      assert property (rsp.error |-> rsp.digest_s0 == 0 && rsp.digest_s1 == 0)
+      else `ASSERT_ERROR(ErrOutputZeros_A)
+  end
+
+  // If EnMasking is true, bind a reqack_data_if into the instance of prim_sync_reqack data at
+  // dut.gen_entropy.u_prim_sync_reqack_data and register it with uvm_config_db to be found by the
+  // environment.
+  //
+  // To ensure that this registration happens before we call run_test below, this sets
+  // all_reqack_vifs_registered to true once it is done.
+  bit all_reqack_vifs_registered;
+
+  if (`EN_MASKING) begin : gen_bind_reqack_data_if
+    bind dut.gen_entropy.u_prim_sync_reqack_data reqack_data_if u_reqack_data_if ();
+
+    initial begin
+      uvm_config_db#(virtual pins_if #(1))
+      ::set(null, "*.env", "reqack_data_pins_vif",
+            dut.gen_entropy.u_prim_sync_reqack_data.u_reqack_data_if.u_pins_if);
+
+      all_reqack_vifs_registered = 1;
+    end
+  end else begin : gen_bind_no_reqack_data_if
+    initial begin
+      all_reqack_vifs_registered = 1;
+    end
+  end
+
+  // edn_clk, edn_rst_n and edn_if is defined and driven in below macro
+  `DV_EDN_IF_CONNECT
+
+  `DV_ALERT_IF_CONNECT()
+
+  // dut
+
+  kmac #(
+    .EnMasking(`EN_MASKING),
+    .SwKeyMasked(`SW_KEY_MASKED),
+    .NumAppIntf(NUM_APP_INTF)
+  ) dut (
+    .clk_i              (clk            ),
+    .rst_ni             (rst_n          ),
+    .rst_shadowed_ni    (rst_shadowed_n ),
+
+    // TLUL interface
+    .tl_i               (tl_if.h2d ),
+    .tl_o               (tl_if.d2h ),
+
+    // Alerts
+    .alert_rx_i         (alert_rx ),
+    .alert_tx_o         (alert_tx ),
+
+    // life cycle escalation input
+    .lc_escalate_en_i   (kmac_if.lc_escalate_en_i ),
+
+    // KeyMgr sideload key interface
+    .keymgr_key_i       (kmac_sideload_key),
+
+    // KeyMgr KDF datapath
+    .app_i              (app_req ),
+    .app_o              (app_rsp ),
+
+    // Interrupts
+    .intr_kmac_done_o   (interrupts[KmacDone]      ),
+    .intr_fifo_empty_o  (interrupts[KmacFifoEmpty] ),
+    .intr_kmac_err_o    (interrupts[KmacErr]       ),
+
+    // Idle interface
+    .idle_o             (kmac_if.idle_o ),
+
+    .en_masking_o       (kmac_if.en_masking_o ),
+
+    // EDN interface
+    .clk_edn_i          (edn_clk                           ),
+    .rst_edn_ni         (edn_rst_n                         ),
+    .entropy_o          (edn_if[0].req                     ),
+    .entropy_i          ({edn_if[0].ack, edn_if[0].d_data} )
+  );
+
+  initial begin
+    // drive clk and rst_n from clk_if
+    clk_rst_if.set_active();
+    uvm_config_db#(virtual clk_rst_if)::set(null, "*.env", "clk_rst_vif", clk_rst_if);
+    uvm_config_db#(virtual rst_shadowed_if)::set(null, "*.env", "rst_shadowed_vif",
+                                                 rst_shadowed_if);
+    uvm_config_db#(intr_vif)::set(null, "*.env", "intr_vif", intr_if);
+    uvm_config_db#(virtual tl_if)::set(null, "*.env.m_tl_agent*", "vif", tl_if);
+    uvm_config_db#(virtual key_sideload_if)::set(null, "*.env.keymgr_sideload_agent*",
+                                                 "vif", sideload_if);
+    uvm_config_db#(virtual kmac_if)::set(null, "*.env", "kmac_vif", kmac_if);
+
+    $timeformat(-12, 0, " ps", 12);
+
+    // Make sure that the initial block in gen_bind_*reqack_data_if has run and registered
+    // reqack_data_if before we start the build phase (which will it up in uvm_config_db).
+    wait (all_reqack_vifs_registered);
+
+    run_test();
+  end
+
+endmodule

@@ -1,0 +1,404 @@
+/* Copyright lowRISC contributors (OpenTitan project). */
+/* Licensed under the Apache License, Version 2.0, see LICENSE for details. */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+// Original Author
+// https://github.com/JorelAli/mdBook-pagetoc
+
+// Un-active everything when you click it
+Array.prototype.forEach.call(document.getElementsByClassName("pagetoc")[0].children, function(el) {
+    el.addEventHandler("click", function() {
+        Array.prototype.forEach.call(document.getElementsByClassName("pagetoc")[0].children, function(el) {
+            el.classList.remove("active");
+        });
+        el.classList.add("active");
+    });
+});
+
+/* The following functionality highlights the pagetoc entry of the highest visible heading on the page.
+ * This gives the pagetoc the dynamic highlighting behaviour as you scroll the page. */
+var updateDynamicHighlight = function() {
+    var id;
+    let elements = document.getElementsByClassName("header");
+    // Set id == the highest "header" element visible in the window.
+    // Define an offset to account for the menubar, and bump the decision-point a
+    // bit further down the page, which makes the behaviour feel more natural.
+    const highestVisibleHeaderOffset = 350; // px
+    Array.prototype.forEach.call(elements, function(el) {
+        if ((window.pageYOffset + highestVisibleHeaderOffset) >= el.offsetTop) {
+            id = el;
+        }
+    });
+    if (!id) return;
+    // Special case: when scrolled to the very top of the page, always highlight
+    // the first heading. Otherwise the decision-point offset (which sits a few
+    // hundred px down the viewport) can land past the first heading and pick
+    // the second one, which contradicts the user's expectation that "at the top
+    // of the page" means "the first heading is current".
+    if (window.pageYOffset <= 1 && elements.length > 0) {
+        id = elements[0];
+    }
+    // Add the matching <a> pagetoc element to the "active" class (i.e. highlighted).
+    // Also scroll the ToC so this element is in-view.
+    let pagetoc = document.getElementsByClassName("pagetoc")[0];
+    Array.prototype.forEach.call(pagetoc.getElementsByTagName("a"), function(el) {
+        if (id.href.localeCompare(el.href) == 0) {
+            // Set all <a> elements in the pagetoc inactive.
+            Array.prototype.forEach.call(pagetoc.getElementsByTagName("a"), function(el) {
+                el.classList.remove("active");
+            });
+            // Set the matched <a> element as 'active'
+            el.classList.add("active");
+
+            // Intentionally do NOT auto-scroll the pagetoc to keep the active entry
+            // in view: on long pages this causes the pagetoc to lurch around as the
+            // user scrolls the main viewport, overriding wherever they had manually
+            // scrolled the pagetoc. Instead, show top/bottom indicators when the
+            // active entry has drifted out of the pagetoc's visible band.
+            updatePagetocIndicators(pagetoc, el);
+        }
+    });
+};
+
+/* If the active pagetoc entry is scrolled outside the pagetoc's visible band, show
+ * a small chevron indicator at the corresponding edge (top or bottom). Clicking it
+ * recenters the active entry. Indicators are hidden when the active entry is in
+ * view, or when the pagetoc isn't scrollable at all. */
+var updatePagetocIndicators = function(pagetoc, activeEl) {
+    // Indicators are siblings of .pagetoc inside .pagetoc-wrapper (see the
+    // comment above the wrapper creation in create_pagetoc_structure).
+    let wrapper = pagetoc.parentElement;
+    let topInd = wrapper && wrapper.querySelector('.pagetoc-indicator-top');
+    let botInd = wrapper && wrapper.querySelector('.pagetoc-indicator-bottom');
+    if (!topInd || !botInd || !activeEl) return;
+    let scrollable = pagetoc.scrollHeight > pagetoc.clientHeight + 1;
+    if (!scrollable) {
+        topInd.classList.remove('visible');
+        botInd.classList.remove('visible');
+        return;
+    }
+    let activeTop = activeEl.offsetTop;
+    let activeBottom = activeTop + activeEl.offsetHeight;
+    let viewTop = pagetoc.scrollTop;
+    let viewBottom = viewTop + pagetoc.clientHeight;
+    topInd.classList.toggle('visible', activeBottom < viewTop);
+    botInd.classList.toggle('visible', activeTop > viewBottom);
+};
+/* Run the first highlight pass once fonts have settled -- heading offsetTop values
+ * shift when the Recursive @font-face swaps in, and `load` does not await fonts.
+ * Subsequent updates are driven from controlMenuBarAndHighlight() below. */
+document.fonts.ready.then(updateDynamicHighlight);
+
+/* Take over menu-bar visibility on scroll, pre-empting mdbook's controllPosition
+ * handler in book.js. Reason: mdbook's algorithm writes an inline `style.top`
+ * on #menu-bar that is computed from `prevScrollTop + minMenuY` on the scrollUp
+ * branch. With a large single-event scroll delta (e.g. the user scrolls a few
+ * hundred pixels in one wheel tick, or -- more reliably -- scrolls up shortly
+ * after an anchor-link jump), that computation lands the menu bar at an
+ * intermediate document position, so it renders mid-viewport until the next
+ * scroll tick snaps it back. We replace that with a simple direction toggle of
+ * the `.sticky` class: `position: sticky; top: 0` from chrome.css handles all
+ * positioning, so no intermediate state is possible.
+ *
+ * Suppression window: when the scroll is the result of a same-page hash-link
+ * click, leave the `.sticky` state alone so the menu doesn't flicker on jump. */
+(function controlMenuBarAndHighlight() {
+    let menu = document.getElementById('menu-bar');
+    if (menu) {
+        // Drop any inline top mdbook's IIFE set at init -- `.sticky` + CSS is
+        // sufficient and avoids divergence between DOM style and our logic.
+        menu.style.top = '';
+    }
+    let prevScrollTop = Math.max(document.scrollingElement.scrollTop, 0);
+    let suppressUntil = 0;
+
+    window.addEventListener('scroll', function(e) {
+        let scrollTop = Math.max(document.scrollingElement.scrollTop, 0);
+        if (menu && performance.now() >= suppressUntil) {
+            let scrollDown = scrollTop > prevScrollTop;
+            menu.classList.toggle('sticky', !scrollDown);
+        }
+        if (menu) menu.style.top = '';
+        prevScrollTop = scrollTop;
+        // updateDynamicHighlight runs inline because stopImmediatePropagation
+        // below halts every other scroll listener (including mdbook's, which
+        // is the point), so we can't rely on a separately-registered handler.
+        updateDynamicHighlight();
+        e.stopImmediatePropagation();
+    }, true);
+
+    document.addEventListener('click', function(e) {
+        let a = e.target.closest && e.target.closest('a[href]');
+        if (!a) return;
+        let url;
+        try { url = new URL(a.href, window.location.href); } catch (_) { return; }
+        // Only same-page hash navigation -- leave cross-page nav alone.
+        if (url.pathname !== window.location.pathname || !url.hash) return;
+        suppressUntil = performance.now() + 500;
+    }, true);
+})();
+
+/* Style the heading that matches the URL fragment (i.e. when you click a hyperlink).
+ * - Find the element with the ":target" pseudo-class applied
+ * - Measure it's rendered height, and set the '--target-height' variable to this value.
+ * - The CSS selected by ":target" will style the horizontal highlighting bar to match this height. */
+var set_target_highlight = function(event) {
+    let newurl = '';
+    if (typeof(event.newURL) === 'undefined') {
+        // probably a "load" event
+        newurl = window.location.href;
+    } else {
+        // "hashchange" event
+        newurl = event.newURL;
+    }
+    // Along with "margin-top: -10px;" applied to the :target selector style, this gives the
+    // highlight a top and bottom margin of 10px around the heading.
+    const targetMarginTopBottom = 20; // px
+    Array.prototype.forEach.call(document.getElementsByClassName("header"), function(el) {
+        if (new URL(el.href).hash == new URL(newurl).hash) {
+            document.documentElement.style.setProperty(
+                '--target-height', (el.getBoundingClientRect().height + targetMarginTopBottom) + "px"
+            );
+            // scroll-margin-top does not seem to work for the first header on a page, so manually
+            // force into view if we nav to it.
+            if (el === document.getElementsByClassName("header")[0]) { el.scrollIntoView(false); }
+        }
+    });
+};
+window.addEventListener("hashchange", set_target_highlight);
+/* As with the pagetoc height: measure the targeted heading's bounding rect only
+ * after fonts have loaded, so --target-height matches the final rendered height
+ * (and the initial scrollIntoView lands on the right spot). */
+document.fonts.ready.then(set_target_highlight);
+
+/* Set the "height" style of pagetoc conditionally.
+ * - auto    -> for short lists that don't overflow, limit the height of the pagetoc, disables scrollbar.
+ * - limited -> content overflows the element, and therefore scrolling is enabled */
+var set_pagetoc_height = function() {
+    let el = document.getElementsByClassName("pagetoc")[0];
+    el.style.height = "auto";
+    // Add some extra margin-bottom to the pagetoc, to keep away from the bottom of the page.
+    const pagetocMarginBottom = 200; // px
+    let pagetoc_height = el.getBoundingClientRect().height + pagetocMarginBottom;
+    let window_height = window.innerHeight - document.documentElement.style.getPropertyValue('--menu-bar-height');
+    if (pagetoc_height < window_height) {
+        el.style.height = "auto";
+    } else {
+        // limited_height. Compute available space precisely so the pagetoc never
+        // crosses the viewport's bottom edge. Subtract:
+        //   - menu bar height
+        //   - .sidetoc sticky top offset (matches pagetoc.css: 3rem above menu bar)
+        //   - #pagetoc-title rendered height (sibling above the pagetoc)
+        //   - desired bottom margin
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        const menuBar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height')) || 50;
+        const topOffset = 3 * rem;
+        const bottomMargin = 8 * rem;
+        const titleEl = document.getElementById('pagetoc-title');
+        const titleH = titleEl ? titleEl.getBoundingClientRect().height : 0;
+        const h = window.innerHeight - menuBar - topOffset - titleH - bottomMargin;
+        el.style.height = Math.max(h, 0) + 'px';
+    }
+};
+window.addEventListener("resize", set_pagetoc_height);
+
+/* create_pagetoc_structure()
+ * Dynamically create a tree of <a> elements for each heading in
+ * the content body, with wrapper divs for each level of hierarchy.
+ * This will allow formatting/styling which better illustrates the
+ * structure of the page.
+ * Add the created structure within the 'pagetoc' element.
+ *
+ *    //  /-> headerElements[idx] // In-order array of section headings down the page
+ *    //  |
+ *    //  |
+ *    //    // ----
+ *    //  0 // H1 |
+ *    //  1 // H1 |
+ *    //  2 // H1 |
+ *    //  - // W1---------
+ *    //  3 // |      H2 |
+ *    //  4 // |      H2 |
+ *    //  - // |      W2---------
+ *    //  5 // |      |      H3 |
+ *    //  6 // |      |      H3 |
+ *    //    // |      -----------
+ *    //  7 // |      H2 |
+ *    //  - // |      W2---------
+ *    //  8 // |      |      H3 |
+ *    //    // ------------------
+ *    //  9 // H1 |
+ *    // 10 // H1 |
+ *    // -  // W1---------
+ *    // 11 // |      H2 |
+ *    // 12 // |      H2 |
+ *    // -  // |      W2---------
+ *    // 13 // |      |      H3 |
+ *    // 14 // |      |      H3 |
+ *    //    // |      -----------
+ *    // 15 // |      H2 |
+ *    // -  // |      W2---------
+ *    // 16 // |      |      H3 |
+ *    //    // ------------------
+ *    // 17 // H1 |
+ *    //    // ----
+ *
+ *    LeafNode -> createAnchorElement(idx)
+ */
+
+var create_pagetoc_structure = function(el_pagetoc) {
+    // Search the page for all <H*> elements
+    let headerElements = Array.from(document.getElementsByClassName("header"));
+    // Don't show the pagetoc if there are not enough heading elements.
+    if (headerElements.length <= 1) {
+        document.getElementsByClassName("sidetoc")[0].classList.add("hidden");
+        return;
+    }
+    // Filter-out heading elements we don't want to show.
+    // The default list hides some headings used within the register map, which
+    // greatly reduces noise and keeps the list a manageable length.
+    // TODO add configurable filter, or design a standard id across the project docs.
+    //      e.g in-page metadata could be picked up to specify an exclude list.
+    const id_keywords = ['field', 'fields', "instances"];
+    headerElements = headerElements.filter(h =>
+        (id_keywords.filter(i => h.parentElement.id.includes(i))).length === 0
+    );
+
+    // Add title div as a sibling of the pagetoc (under .sidetoc) so it stays
+    // visible above the scrollable pagetoc and doesn't interfere with the
+    // sticky top/bottom indicators inside the pagetoc.
+    let title = document.createElement("div");
+    title.appendChild(document.createTextNode("Table of Contents"));
+    title.setAttribute("id", "pagetoc-title");
+    el_pagetoc.parentElement.insertBefore(title, el_pagetoc);
+
+    //////////////////////////////////
+    // Define some helper functions //
+    //////////////////////////////////
+
+    // Create an <a> element for a clickable link
+    function createAnchorElement(idx) {
+        let el = headerElements[idx];
+        // Some headings may have different structures, or may be malformed.
+        // Deal with this, somewhat gracefully. At least try not to crash.
+        try {
+            let link = document.createElement("a");
+            // A heading which is also a link is generated with a slightly different structure
+            // The heading text is in an adjacent <a> tag, but we use the href from the first <a> elem.
+            let el_with_text;
+            if (el.text.length === 0) {
+                el_with_text = el.nextElementSibling;
+            } else {
+                el_with_text = el;
+            }
+            link.appendChild(document.createTextNode(el_with_text.text));
+            link.href = el.href;
+            link.classList.add("leaf-" + el.parentElement.tagName);
+            return link;
+        }
+        catch(err) {
+            console.log(err);
+            return document.createElement("a");
+        }
+    }
+    function getHnum(idx) {
+        return parseInt(headerElements[idx].parentElement.nodeName[1]);
+    }
+    // Return idx of the next element with a larger Hnum.
+    function getNextHigherH (idxCur) {
+        let hCur = getHnum(idxCur);
+        for (let i = idxCur + 1; i < headerElements.length; i++) {
+            if (hCur > getHnum(i)) {return i;}
+        }
+        return headerElements.length;
+    }
+    // Create a wrapper element encompassing headings from
+    // startIdx to stopIdx, recursively adding more wrappers if
+    // headings in the range are lower Hnum.
+    // Strictly, 'startIdx <= stopIdx'
+    // This allows the hierarchy of the headings to be mirrored
+    // within the pagetoc structure, allowing for some context-aware
+    // formatting options.
+    function wrapAllDescendingElems(
+        wLevel, // wrapperLevel (the H* index)
+        startIdx, stopIdx)
+    {
+        console.assert(startIdx <= stopIdx, "Strictly, 'stopIdx <= startIdx' is required.");
+        let wrap = document.createElement("div");
+        wrap.classList.add(`wrap-W${wLevel}`);
+
+        // Loop over the range given, descending recursively where needed.
+        let i = startIdx;
+        while (i <= stopIdx) {
+            let h = getHnum(i);
+
+            if (h === wLevel) {
+                wrap.appendChild(createAnchorElement(i));
+                i++;
+            } else if (h > wLevel) {
+                wrap.appendChild(wrapAllDescendingElems(h, // wrapperLevel
+                    i, getNextHigherH(i) - 1 // startIdx, stopIdx
+                ));
+                i = getNextHigherH(i);
+            } else if (h < wLevel) { console.log(`Break_H_LessThan_W(${i})`); break; }
+        }
+        return wrap;
+    }
+
+    // Invoke the above helper-functions to create the tree
+    let tree = wrapAllDescendingElems(0, 0, headerElements.length - 1);
+    el_pagetoc.appendChild(tree);
+
+    // Add top/bottom indicators. These show when the active entry has scrolled
+    // outside the pagetoc's visible band; clicking either recenters it.
+    // The indicators live in a wrapper that surrounds the scrollable .pagetoc,
+    // and are absolutely positioned at its top/bottom edges
+    // (see .pagetoc-wrapper / .pagetoc-indicator in pagetoc.css).
+    let wrapper = document.createElement('div');
+    wrapper.className = 'pagetoc-wrapper';
+    el_pagetoc.parentElement.insertBefore(wrapper, el_pagetoc);
+    wrapper.appendChild(el_pagetoc);
+
+    function makeIndicator(side, glyph) {
+        let el = document.createElement('div');
+        el.className = 'pagetoc-indicator pagetoc-indicator-' + side;
+        el.textContent = glyph;
+        el.setAttribute('title', 'Scroll to current section');
+        el.addEventListener('click', function() {
+            let active = el_pagetoc.querySelector('a.active');
+            if (!active) return;
+            el_pagetoc.scrollTo({
+                top: active.offsetTop - el_pagetoc.clientHeight / 2,
+                behavior: 'smooth'
+            });
+        });
+        return el;
+    }
+    wrapper.appendChild(makeIndicator('top', '\u25B2'));
+    wrapper.appendChild(makeIndicator('bottom', '\u25BC'));
+
+    // Re-evaluate indicator visibility when the user scrolls the pagetoc itself
+    // (e.g. they drag the scrollbar; the indicator should disappear once the
+    // active entry is back in view).
+    el_pagetoc.addEventListener('scroll', function() {
+        let active = el_pagetoc.querySelector('a.active');
+        updatePagetocIndicators(el_pagetoc, active);
+    });
+};
+
+
+
+/* Populate the pagetoc sidebar.
+ * - Build the tree structure as soon as the HTML is parsed (no need to wait for
+ *   sub-resources like images), so the pagetoc appears as early as possible.
+ * - Defer the height measurement until `document.fonts.ready` resolves. The
+ *   pagetoc text uses the Recursive @font-face, which loads asynchronously and
+ *   is NOT awaited by the `load` event -- when it eventually swaps in, every text
+ *   dimension changes. Measuring before that swap (the previous behaviour, even
+ *   inside a 1s setTimeout, was racing the font load) gives the wrong height and
+ *   triggers the "limited / scrollbar" branch incorrectly. */
+window.addEventListener('DOMContentLoaded', function() {
+    let pagetoc = document.getElementsByClassName("pagetoc")[0];
+    create_pagetoc_structure(pagetoc);
+    document.fonts.ready.then(set_pagetoc_height);
+});

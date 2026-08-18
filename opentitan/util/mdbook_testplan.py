@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# Copyright lowRISC contributors (OpenTitan project).
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+"""mdbook preprocessor that generates testplans for the ip blocks.
+
+The preprocessor finds testplans in SUMMARY.md and converts them into a html document.
+"""
+
+import json
+import sys
+import re
+import io
+from pathlib import Path
+
+from mdbook import utils as md_utils
+from dvsim.testplan import Testplan
+
+
+def main() -> None:
+    md_utils.supports_html_only()
+
+    # load both the context and the book from stdin
+    context, book = json.load(sys.stdin)
+    book_root = Path(context["root"])
+
+    try:
+        testplan_str = context["config"]["preprocessor"]["testplan"]["testplan-py-regex"]
+        testplan_pattern = re.compile(testplan_str)
+    except KeyError:
+        sys.exit(
+            "No RegEx pattern given in book.toml to identify testplan files.\n"
+            "Provide regex as preprocessor.testplan.testplan-py-regex .",
+        )
+
+    testplan_files = set()
+    for chapter in md_utils.chapters(book["sections"]):
+        src_path = chapter["source_path"]
+        if not src_path or not testplan_pattern.search(src_path):
+            continue
+        # Testplan loading may print to stdout; mdbook reads our stdout, so
+        # redirect any such chatter to stderr where it won't corrupt the book.
+        from contextlib import redirect_stdout
+        with redirect_stdout(sys.stderr):
+            # The dvsim Testplan constructor now requires a `name` arg; derive
+            # one from the testplan file stem (e.g. "aes_testplan.hjson" -> "aes").
+            stem = Path(src_path).stem
+            name = stem.removesuffix("_testplan")
+            plan = Testplan(
+                str(book_root / src_path),
+                repo_top=book_root,
+                name=name,
+            )
+            buffer = io.StringIO()
+            plan.write_testplan_doc(buffer)
+            chapter["content"] = buffer.getvalue()
+
+        testplan_files.add(Path(chapter["source_path"]))
+
+    for chapter in md_utils.chapters(book["sections"]):
+        if not chapter["source_path"]:
+            continue
+        src_dir = Path(chapter["source_path"]).parent
+
+        chapter["content"] = md_utils.change_link_ext(
+            testplan_files,
+            chapter["content"],
+            ".html",
+            book_root,
+            src_dir,
+        )
+
+    # dump the book into stdout
+    print(json.dumps(book))
+
+
+if __name__ == "__main__":
+    main()

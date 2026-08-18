@@ -1,0 +1,299 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style type="text/css">
+html{overflow-y:scroll;background-color:#196069}
+body{font-family:"Noto Sans","Droid Sans","DejaVu Sans","Arial",sans-serif;line-height:1.5}
+tt,code{background-color:#f0f0f0;font-family:Consolas,Monaco,"Noto Sans Mono","DejaVu Sans Mono",monospace,sans-serif;font-size:1em;}
+pre{margin-left:3em}
+p,ul,ol,blockquote,pre{font-size:1.0em;line-height:1.6}
+li p{font-size:1.0em}
+blockquote p{font-size:1.0em}
+h1{font-size:1.5em}
+h2{font-size:1.3em}
+h3{font-size:1.0em}
+h1 a{text-decoration:none}
+table{border-collapse:collapse}
+th,td{border:1px solid black}
+table a{text-decoration:none}
+table tr{font-size:1.0em;line-height:1.6em}
+table tr{font-size:1.0em;line-height:1.5}
+tbody tr:nth-child(20n+1){background-color:#f0ffff}
+tbody tr:nth-child(20n+2){background-color:#f0ffff}
+tbody tr:nth-child(20n+3){background-color:#f0ffff}
+tbody tr:nth-child(20n+4){background-color:#f0ffff}
+tbody tr:nth-child(20n+5){background-color:#f0ffff}
+tbody tr:nth-child(20n+6){background-color:#f0ffff}
+tbody tr:nth-child(20n+7){background-color:#f0ffff}
+tbody tr:nth-child(20n+8){background-color:#f0ffff}
+tbody tr:nth-child(20n+9){background-color:#f0ffff}
+tbody tr:nth-child(20n+10){background-color:#f0ffff}
+tbody tr:nth-child(20n+11){background-color:#fffff0}
+tbody tr:nth-child(20n+12){background-color:#fffff0}
+tbody tr:nth-child(20n+13){background-color:#fffff0}
+tbody tr:nth-child(20n+14){background-color:#fffff0}
+tbody tr:nth-child(20n+15){background-color:#fffff0}
+tbody tr:nth-child(20n+16){background-color:#fffff0}
+tbody tr:nth-child(20n+17){background-color:#fffff0}
+tbody tr:nth-child(20n+18){background-color:#fffff0}
+tbody tr:nth-child(20n+19){background-color:#fffff0}
+tbody tr:nth-child(20n+20){background-color:#fffff0}
+
+#headline{display:block;margin:0;padding:0;color:#ffffff;background-color:#196069}
+#headline .text{font-weight:bold;font-size:1.0em}
+#headline input{display:none}
+#nav ul{margin:0;padding:0}
+#nav li{list-style-type:none;margin:0;padding:0}
+.navtop{padding-bottom:0.5em;font-weight:bold;font-size:1.0em}
+.navtop{background-color:#196069;color:#ffffff}
+#nav .here{background-color:#196069;color:#ffffff}
+#nav .away{background-color:#196069;color:#ffffff}
+#nav .away a{text-decoration:none;display:block;color:#ffffff}
+#nav .away a:hover,.away a:active{text-decoration:underline}
+#hidemenu{visibility:hidden;display:none;overflow:hidden;position:fixed;top:0;left:0;height:100%;width:100%}
+
+.main{padding:5px}
+.main{background-color:#ffffff}
+.pagetitle{font-size:1.4em;font-weight:bold}
+@media only screen and (min-width:512px) {
+  .navtop{padding-top:5px}
+  #headline{top:0;margin:0;width:160px;height:100%;position:fixed;overflow:auto}
+  #headline .noselect{display:none}
+  #headline #nav{visibility:visible;display:block;width:auto;height:auto}
+  .main{margin-left:170px}
+  #headline #hidemenu{visibility:hidden}
+}
+@media not screen and (min-width:512px) {
+  #headline .noselect{-webkit-user-select:none;-ms-user-select:none;user-select:none;}
+  #headline #nav #navbot{visibility:hidden;position:fixed;top:0;left:-70%;z-index:2;transition:0.2s;margin:0;padding:0}
+  #headline input:checked ~ #nav #navbot{height:100%;position:fixed;top:0;left:0;visibility:visible;display:block;box-sizing:border-box;-moz-box-sizing:border-box;-webkit-box-sizing:border-box;vertical-align:center;font-size:1.0em;width:70%;overflow:auto}
+  #headline input:checked ~ #hidemenu{visibility:visible;display:block;background:black;opacity:0.3;z-index:1}
+}
+</style>
+<title>
+libmceliece: Download</title>
+</head>
+<body>
+<label id=headline>
+<input type=checkbox />
+<nav id=nav>
+<div class=navtop>
+<span class=noselect>≡</span>
+libmceliece</div>
+<ul id=navbot>
+<li class=away><a href=index.html>Intro</a>
+</li><li class=here>Download
+</li><li class=away><a href=install.html>Install</a>
+</li><li class=away><a href=test.html>Test</a>
+</li><li class=away><a href=api.html>API</a>
+</li><li class=away><a href=cli.html>CLI</a>
+</li><li class=away><a href=security.html>Security</a>
+</li><li class=away><a href=verification.html>Verification</a>
+</li><li class=away><a href=speed.html>Speed</a>
+</li><li class=away><a href=internals.html>Internals</a>
+</li><li class=away><a href=people.html>People</a>
+</li><li class=away><a href=license.html>License</a>
+</li></ul></nav>
+<div id=hidemenu></div>
+</label>
+<div class=main>
+<div class=pagetitle>libmceliece: Download</div>
+<p>To download and unpack the latest version of libmceliece:</p>
+<pre><code>wget -m https://lib.mceliece.org/libmceliece-latest-version.txt
+version=$(cat lib.mceliece.org/libmceliece-latest-version.txt)
+wget -m https://lib.mceliece.org/libmceliece-$version.tar.gz
+tar -xzf lib.mceliece.org/libmceliece-$version.tar.gz
+cd libmceliece-$version
+</code></pre>
+<p>Then <a href="install.html">install</a>
+and <a href="test.html">test</a>.</p>
+<h3 id="changelog">Archives and changelog (reverse chronological)</h3>
+<p><a href="libmceliece-20260622.tar.gz"><code>libmceliece-20260622.tar.gz</code></a> <a href="libmceliece-20260622.html">browse</a></p>
+<p>Import <code>avx2</code> and <code>neon</code> code from <code>djbsort-20260210</code> for <code>int32</code> and <code>int64</code>.</p>
+<p>Use <code>cryptoint</code> more in <code>crypto_kem/*/*/kem_dec.c</code>.</p>
+<p>Allow more base instructions in <code>checkinsns</code>.</p>
+<p>Tweak <code>checkinsns</code> to work around <code>capstone</code> not understanding <code>vbroadcasti128</code>.</p>
+<p>Recognize <code>ppc64el</code> in <code>configure</code>.</p>
+<p>Support Python 3.14 in <code>fulltest</code>,
+copying djbsort patch supplied by Georg Sauthoff.</p>
+<p>Add initial support for <code>$CROSS</code> and <code>$DESTDIR</code>.</p>
+<p>Add initial tweaks for Fil-C support.
+(But Fil-C is starting to add support for inline assembly so some of these tweaks can disappear later.)</p>
+<p>Include auto-generator for <code>compilers/*</code>.</p>
+<p>Change HTML style, in particular for better usability on phones.</p>
+<hr />
+<p><a href="libmceliece-20250507.tar.gz"><code>libmceliece-20250507.tar.gz</code></a> <a href="libmceliece-20250507.html">browse</a></p>
+<p>Upgrade to <code>cryptoint 20250414</code>.</p>
+<p>Use <code>cryptoint</code> more in <code>crypto_xof/bitwrite16</code> implementations.</p>
+<p>In preparation for potential <code>-Wc++-compat</code>,
+avoid C++ reserved words and include some explicit conversions.</p>
+<p>In preparation for potential <code>-Wshadow</code>,
+rename a <code>controlbits</code> variable.</p>
+<p>Tweak constructor priority in <code>dispatch</code>.</p>
+<p>Integrate revamped <code>checkinsns</code> that uses <code>python3-capstone</code>
+(or that skips instruction-set tests if <code>python3-capstone</code> isn't installed).</p>
+<p>Improve platform support in <code>hostsanitize</code>.</p>
+<p>For <code>checknamespace</code>,
+skip <code>n</code> symbols for FreeBSD;
+skip <code>__sparc_get_pc_thunk</code>, empty section names, and <code>f</code> symbols for Solaris;
+skip <code>-p</code> sorting (on Solaris, <code>-p</code> and <code>-P</code> are incompatible);
+support class <code>D</code> for PPC.</p>
+<hr />
+<p><a href="libmceliece-20241009.tar.gz"><code>libmceliece-20241009.tar.gz</code></a> <a href="libmceliece-20241009.html">browse</a></p>
+<p>Upgrade to <code>cryptoint 20241003</code>.</p>
+<p>Use <code>cryptoint</code> for variable shifts in the <code>f</code> variants.</p>
+<p>Say <code>full tests succeeded</code> in <code>mceliece-fulltest</code> documentation.</p>
+<hr />
+<p><a href="libmceliece-20240812.tar.gz"><code>libmceliece-20240812.tar.gz</code></a> <a href="libmceliece-20240812.html">browse</a></p>
+<p>Restructure <code>gf</code> for simpler code:
+<code>gf.h</code> is now shared across all parameter sets;
+each of the two field sizes has one <code>gf_params.h</code>, one <code>gf.c</code>, one <code>gf_2m_mul.c</code>, and one <code>gf_2m_mul2.c</code>;
+each of the four extension-field sizes has one <code>gf_2mt_mul.c</code>.</p>
+<p>Support finer-grained command-line splits in <code>mceliece-test</code>,
+and use those for more parallelization inside <code>mceliece-fulltest</code>.</p>
+<p>Proactively rewrite many 1-bit data paths via <code>cryptoint</code>.</p>
+<p>Update to latest <code>cryptoint</code> from SUPERCOP (renamed from <code>inttypes</code>).</p>
+<p>Fix comment on <code>minmax_rows</code>.</p>
+<p>Remove some unused <code>#include</code> lines.</p>
+<hr />
+<p><a href="libmceliece-20240726.tar.gz"><code>libmceliece-20240726.tar.gz</code></a> <a href="libmceliece-20240726.html">browse</a></p>
+<p>Add <code>mceliece-fulltest</code> script, and designate passing <code>mceliece-fulltest</code> as required for support.</p>
+<p>Make <code>--valgrind</code> default, and designate disabling it as unsupported.</p>
+<p>Split off <code>doc/test.md</code>.</p>
+<p>Update to latest <code>inttypes</code> from SUPERCOP.</p>
+<p>Use <code>inttypes</code> more in <code>pk_gen.c</code>.</p>
+<p>Move comments to the top in <code>encrypt.c</code>.</p>
+<p>Rename <code>--no</code> as <code>--no-</code>.</p>
+<p>Rename <code>ALIGN</code> as <code>CRYPTO_ALIGN</code>.</p>
+<p>Document more subroutines in <code>doc/internals.md</code>.</p>
+<hr />
+<p><a href="libmceliece-20240513.tar.gz"><code>libmceliece-20240513.tar.gz</code></a> <a href="libmceliece-20240513.html">browse</a></p>
+<p>Support <code>valgrind</code> in <code>mceliece-test</code>,
+with help from <code>configure</code>.
+(Subsequent plans:
+use variable-length <code>malloc</code>
+for variable-length functions.)</p>
+<p>Cover <code>shared</code> directories for <code>checkinsns</code> and <code>checknamespace</code>.</p>
+<p>Sort <code>ofiles</code> for reproducibility.
+Thanks to Jan Mojzis for the suggestion.</p>
+<p>Hide more symbols in <code>.so</code>.</p>
+<p>MacOS X port:
+<code>dylib</code>;
+deal with <code>s</code> and <code>S</code> in <code>checknamespace</code>;
+use <code>-flat_namespace</code> so <code>mceliece-test</code> can substitute <code>randombytes</code>.
+(Infrastructure copied from lib25519.)</p>
+<p>Support empty compiler lists.
+(Infrastructure copied from lib25519.)</p>
+<p>For compatibility with musl etc.,
+support <code>constructor</code> as an alternative to <code>ifunc</code> for dispatch.
+Select <code>constructor</code> automatically if an <code>ifunc</code> compile-time test fails,
+or if <code>--notryifunc</code> is passed to <code>./configure</code>.
+(Infrastructure copied from lib25519.)</p>
+<p>Add <code>note.GNU-stack</code> to assembly.</p>
+<p>Recognize <code>sun4v</code> as <code>sparc64</code>.</p>
+<p>Port to CPUs that do not allow unaligned access.</p>
+<p>Revamp <code>inttypes</code> support.
+Make more use of the <code>inttypes</code> functions.</p>
+<p>Factor <code>crypto_xof/bitwrite16</code>
+out of <code>*/encrypt.c</code>,
+and add new <code>bitwrite16</code> implementations.
+Also support <code>nooverlap</code> option in <code>mceliece-test</code>,
+and increase <code>maxtest</code> for <code>xof</code> to 16384.</p>
+<p>Switch <code>avx/encrypt.c</code>
+from <code>syndrome_asm</code> to new <code>xor_mat_vec256</code>.
+Add support functions such as
+<code>vec256_8x_shr</code>.</p>
+<p>Factor <code>crypto_sort_int16</code>
+out of <code>vec/encrypt.c</code>.
+(Subsequent plans:
+add faster <code>crypto_sort/int16</code> implementations,
+and switch <code>avx/encrypt.c</code> from <code>int32</code> to <code>int16</code>.)</p>
+<p>Factor <code>crypto_sort_int64</code>
+out of <code>pk_gen.c</code>.</p>
+<p>Use <code>crypto_sort_int32</code> directly without the <code>int32_sort</code> renaming.</p>
+<p>Split <code>vec128_gf.h</code> and <code>vec256_gf.h</code>
+out of <code>vec128.h</code> and <code>vec256.h</code>.
+Distinguish <code>vec_mul_gf</code>
+from <code>vec_mul_gf_using_64</code>
+to allow more <code>.h</code> merging across sizes.</p>
+<p>In <code>autogen/speed</code>,
+allocate only <code>mceliece_kem_BYTES</code> for <code>T</code>
+rather than <code>mceliece_kem_CIPHERTEXTBYTES</code>.</p>
+<p>Switch speed measurements from medians to interquartile means.</p>
+<p>Add page with examples of current speeds.</p>
+<p>Add auto-generation warnings
+for <code>mceliece*.c</code>.</p>
+<p>Add manual pages for <code>mceliece-test</code> and <code>mceliece-speed</code>.</p>
+<p>Improve readability of code blocks in HTML.</p>
+<p>Remove unused <code>KAT</code> code segments.</p>
+<p>Remove unused <code>bitrev</code>.</p>
+<p>Remove unused <code>perm_check</code>.
+Thanks to Simon Josefsson for the suggestion.</p>
+<p>More explicitly initialize <code>pivots</code>
+to silence an incorrect compiler warning.
+Thanks to Simon Josefsson for the suggestion.</p>
+<hr />
+<p><a href="libmceliece-20230612.tar.gz"><code>libmceliece-20230612.tar.gz</code></a> <a href="libmceliece-20230612.html">browse</a></p>
+<p>In <code>*/avx/pk_gen.c</code>,
+use merge exchange in <code>sort_rows()</code>
+and slightly reduce the number of lines of <code>minmax_rows()</code>.</p>
+<p>Rename <code>encrypt()</code> as <code>pke_encrypt()</code>,
+to more portably avoid name collision with POSIX <code>encrypt()</code>.</p>
+<p>Add more 0-initialization in the <code>to_bitslicing</code> functions.
+This doesn't help a full correctness proof,
+but it does make it easier to see that undefined data is not used.
+Thanks to Thom Wiggers for the suggestion.</p>
+<p>For MacOS portability,
+move <code>#include "encrypt.h"</code> after other inclusions,
+and change <code>.hidden</code> to <code>.private_extern</code> (via a new <code>ASM_HIDDEN</code>)
+if <code>__APPLE__</code> is defined.
+Thanks to Thom Wiggers for the suggestions.</p>
+<p>Specify 32-byte alignment for some arrays passed to <code>.S</code> files
+in the <code>avx</code> implementations.
+The <code>.S</code> files use <code>movdqu</code> instead of <code>movdqa</code>,
+so they don't need alignment,
+but the alignment could avoid warnings
+from a compiler that checks for potentially inadequate alignment.
+Thanks to Thom Wiggers for the suggestion.</p>
+<p>Remove an unused pointer increment at the end of <code>benes.c</code>.
+Thanks to Thom Wiggers for the suggestion.</p>
+<p>Add various <code>linker</code> lines in <code>.c</code> files and <code>.S</code> files;
+split <code>operations.c</code> into <code>kem_{keypair,enc,dec}.c</code> and <code>wrap_{keypair,enc,dec}.c</code>;
+and split big constant arrays from <code>fft.c</code>, <code>fft_tr.c</code>
+into separate <code>shared-*.c</code> files.
+The <code>linker</code> lines trigger an infrastructure mechanism
+to unify compiled code across implementations,
+reducing <code>.so</code> size;
+the splits improve the effectiveness of this mechanism,
+and reduce the amount of code linked
+into programs that use only one or two of <code>{keypair,enc,dec}</code>.
+Further changes to the infrastructure may remove the need for <code>wrap*.c</code>.</p>
+<p>Add <code>const</code> to prototypes for input pointers for some functions.
+More can be done here.</p>
+<p>Change prototypes from <code>*</code> and <code>[]</code> to, e.g., <code>[GFBITS]</code>
+when necessary to eliminate compiler warnings.</p>
+<p>Move <code>gf_mul2</code> to <code>crypto_kem/6688128/avx/gf.h</code> from <code>gf.c</code>.</p>
+<p>Consistently define <code>nBlocksI</code> as a macro rather than a const.
+This is a step towards portability to compilers that fail to support C99.</p>
+<p>Extend information in <code>architectures</code> files.
+This supports libmceliece's run-time selection of implementations.</p>
+<p>Switch from <code>CRYPTO_NAMESPACE</code> to <code>CRYPTO_SHARED_NAMESPACE</code>
+for symbols defined in <code>.S</code> files.</p>
+<p>Rename <code>crypto_hash.h</code> as <code>hash.h</code>,
+and rewrite <code>hash.h</code> as a wrapper around <code>crypto_xof_shake256()</code>.</p>
+<p>Switch <code>keypair</code> return value to <code>void</code>.</p>
+<p>Remove <code>namespacing</code> files, <code>goal-*</code> files, and <code>api.h</code>.</p>
+<p>Rename <code>kem/mceliece*</code> as <code>kem/*</code>.</p>
+<p>Starting point:
+<code>vec</code> and <code>avx</code> implementations
+from official round-4 software release
+(in <code>supercop-20221025</code>),
+plus <code>crypto_sort/int32</code>
+and <code>crypto_xof/shake256</code>,
+plus infrastructure based on lib25519 infrastructure.</p><hr><font size=1><b>Version:</b>
+This is version 2026.06.22 of the "Download" web page.
+</font>
+</div>
+</body>
+</html>

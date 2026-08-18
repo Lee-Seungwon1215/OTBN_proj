@@ -1,62 +1,45 @@
-# OTBN PQC custom-instruction prototype
+# OTBN 프로젝트 작업 공간
 
-This repository packages the OpenTitan files needed to reproduce the
-experimental `BN.CLMULVL4.LO/HI` instruction for HQC carry-less schoolbook
-multiplication.
+Mac의 `/Users/leeseungwon/RISC-V:OTBN` 작업 폴더를 학교 Ubuntu에서 그대로
+이어가기 위한 소스 스냅샷이다.
 
-The full OpenTitan source is intentionally not vendored. The bootstrap script
-checks out the exact upstream revision and copies the reviewed overlay into it.
+## 폴더 구조
 
-## Current scope
+```text
+HQC/
+McEliece/
+frodoKEM/
+opentitan/
+otbn-riscv-dataflow-textbook/
+pqc-bottleneck-otbn-textbook/
+pqc-otbn-codesign-textbook/
+pqc-otbn-seminar/
+SCHOOL_UBUNTU_OTBN_CLMUL_PROMPT.md
+THREE_PQC_BOTTLENECK_RANKING_ko.md
+```
 
-- OpenTitan base commit: `b9d39c6c9c3e10e7363613a3054132f154e21037`
-- ISA and encoding definitions for `BN.CLMULVL4.LO/HI`
-- Python OTBNSim semantics
-- decoder and randomized tests
-- direct instruction and 256×256 schoolbook assembly tests
-- `clmul256.s` example microkernel
-- Ubuntu execution and RTL follow-up prompt
+`opentitan/`에는 `BN.CLMULVL4.LO/HI` ISA 정의, OTBNSim 구현, 무작위 테스트,
+assembly 테스트와 `clmul256.s`가 이미 적용되어 있다. 별도의 overlay 적용이나
+bootstrap 작업은 필요 없다.
 
-The instruction is implemented in the Python ISS only. RTL support has not yet
-been added, so current hardware simulation will report an illegal instruction
-until the decoder and datapath are extended.
-
-## Ubuntu quick start
-
-Clone this branch until its pull request is merged:
+## 학교 Ubuntu에서 시작
 
 ```bash
-git clone -b agent/clmulvl4-prototype --single-branch \
-  https://github.com/Lee-Seungwon1215/OTBN_proj.git
+git clone https://github.com/Lee-Seungwon1215/OTBN_proj.git
 cd OTBN_proj
-./scripts/bootstrap_opentitan.sh
 ```
 
-This creates `./opentitan` at the pinned upstream commit and installs the
-overlay. Then follow [`SCHOOL_UBUNTU_OTBN_CLMUL_PROMPT.md`](SCHOOL_UBUNTU_OTBN_CLMUL_PROMPT.md)
-for dependencies, ELF tests, RTL implementation, and Verilator verification.
+그다음 [`SCHOOL_UBUNTU_OTBN_CLMUL_PROMPT.md`](SCHOOL_UBUNTU_OTBN_CLMUL_PROMPT.md)
+전체를 학교 Codex에 전달한다.
 
-## Focused ISS tests
+## 제외된 로컬 전용 파일
 
-After installing the OpenTitan Python requirements and RISC-V GNU toolchain:
+- 중첩 저장소의 `.git` 메타데이터
+- `node_modules`
+- `.DS_Store`
+- Python bytecode cache
 
-```bash
-cd opentitan/hw/ip/otbn/dv/otbnsim
-python3 -m pytest -vv test/clmulvl4_test.py
-python3 -m pytest -vv test/simple_test.py -k 'bn_clmulvl4'
-```
-
-Expected 256×256 carry-less product:
-
-```text
-w10 = 0x3f5e8362c726fb193df83175bcf93074fc9a30576503a9ce0123456789abcdef
-w11 = 0x7fffffffffffffffc0e13cdd789944a5ff1ec3228766bb5b7ead20f3da098457
-```
-
-## Repository layout
-
-```text
-overlay/opentitan/                    Modified OpenTitan files
-scripts/bootstrap_opentitan.sh        Pinned checkout and overlay installer
-SCHOOL_UBUNTU_OTBN_CLMUL_PROMPT.md    Full Ubuntu/RTL continuation prompt
-```
+`node_modules`에는 GitHub의 단일 파일 100MB 제한을 넘는 macOS ARM 바이너리가
+포함되어 있어 제외했다. 각 웹 프로젝트에서 `npm install`로 Ubuntu용 의존성을
+다시 설치할 수 있다. 실제 소스·프로파일링 결과·문서·OpenTitan 작업 트리는 원래
+경로를 유지한다.

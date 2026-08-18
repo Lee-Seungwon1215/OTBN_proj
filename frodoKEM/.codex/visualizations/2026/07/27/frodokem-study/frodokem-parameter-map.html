@@ -1,0 +1,469 @@
+<div id="frodo-parameter-map">
+  <style>
+    #frodo-parameter-map {
+      color: var(--foreground);
+      width: 100%;
+    }
+
+    #frodo-parameter-map .fpm-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    #frodo-parameter-map .fpm-view[hidden] {
+      display: none;
+    }
+
+    #frodo-parameter-map .fpm-view {
+      min-height: 340px;
+      animation: fpm-enter 180ms ease-out;
+    }
+
+    #frodo-parameter-map .fpm-selection {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px 28px;
+      padding: 12px 0;
+    }
+
+    #frodo-parameter-map .fpm-choice-label {
+      color: var(--muted-foreground);
+      margin-bottom: 8px;
+    }
+
+    #frodo-parameter-map .fpm-choice-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #frodo-parameter-map .fpm-picked,
+    #frodo-parameter-map .fpm-option,
+    #frodo-parameter-map .fpm-role {
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+
+    #frodo-parameter-map .fpm-picked {
+      background: var(--primary);
+      color: var(--primary-foreground);
+      font-weight: 500;
+    }
+
+    #frodo-parameter-map .fpm-option {
+      color: var(--muted-foreground);
+      background: var(--muted);
+    }
+
+    #frodo-parameter-map .fpm-arrow {
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+
+    #frodo-parameter-map .fpm-summary {
+      margin-top: 22px;
+      padding: 14px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    #frodo-parameter-map .fpm-summary strong {
+      font-weight: 500;
+    }
+
+    #frodo-parameter-map .fpm-matrix-flow {
+      display: grid;
+      grid-template-columns: auto auto minmax(170px, 1fr) auto 82px auto 82px;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 8px 0 24px;
+    }
+
+    #frodo-parameter-map .fpm-seed,
+    #frodo-parameter-map .fpm-xof,
+    #frodo-parameter-map .fpm-mac {
+      text-align: center;
+      padding: 10px;
+      color: var(--card-foreground);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    #frodo-parameter-map .fpm-xof {
+      background: color-mix(in srgb, var(--viz-series-2) 16%, var(--card));
+    }
+
+    #frodo-parameter-map .fpm-mac {
+      background: color-mix(in srgb, var(--viz-series-3) 16%, var(--card));
+    }
+
+    #frodo-parameter-map .fpm-matrix {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--foreground);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background-color: color-mix(in srgb, var(--viz-series-1) 14%, transparent);
+      background-image:
+        linear-gradient(to right, color-mix(in srgb, var(--border) 65%, transparent) 1px, transparent 1px),
+        linear-gradient(to bottom, color-mix(in srgb, var(--border) 65%, transparent) 1px, transparent 1px);
+      background-size: 14px 14px;
+    }
+
+    #frodo-parameter-map .fpm-a {
+      width: 100%;
+      aspect-ratio: 1 / 0.72;
+      min-height: 170px;
+    }
+
+    #frodo-parameter-map .fpm-thin {
+      width: 82px;
+      height: 170px;
+      background-color: color-mix(in srgb, var(--viz-series-4) 18%, transparent);
+    }
+
+    #frodo-parameter-map .fpm-matrix-label {
+      padding: 8px;
+      background: color-mix(in srgb, var(--background) 88%, transparent);
+      border-radius: 8px;
+    }
+
+    #frodo-parameter-map .fpm-matrix-label strong {
+      display: block;
+      font-weight: 500;
+    }
+
+    #frodo-parameter-map .fpm-small-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    #frodo-parameter-map .fpm-bits {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 116px;
+      height: 116px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--viz-series-5) 18%, transparent);
+    }
+
+    #frodo-parameter-map .fpm-bits span {
+      border-right: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+    }
+
+    #frodo-parameter-map .fpm-size-chart {
+      display: grid;
+      gap: 22px;
+      padding: 18px 0;
+    }
+
+    #frodo-parameter-map .fpm-size-row {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr) 108px;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #frodo-parameter-map .fpm-track {
+      height: 30px;
+      background: var(--muted);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    #frodo-parameter-map .fpm-bar {
+      height: 100%;
+      min-width: 4px;
+      background: var(--viz-series-1);
+      transition: width 220ms ease-out;
+    }
+
+    #frodo-parameter-map .fpm-size-row:nth-child(2) .fpm-bar {
+      background: var(--viz-series-2);
+    }
+
+    #frodo-parameter-map .fpm-size-row:nth-child(3) .fpm-bar {
+      background: var(--viz-series-3);
+    }
+
+    #frodo-parameter-map .fpm-size-row:nth-child(4) .fpm-bar {
+      background: var(--viz-series-4);
+    }
+
+    #frodo-parameter-map .fpm-bytes {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #frodo-parameter-map .fpm-code-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: stretch;
+      gap: 12px;
+      padding: 24px 0;
+    }
+
+    #frodo-parameter-map .fpm-code-node {
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 10px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--viz-series-1) 10%, transparent);
+    }
+
+    #frodo-parameter-map .fpm-code-node strong {
+      font-weight: 500;
+    }
+
+    #frodo-parameter-map .fpm-role {
+      background: var(--muted);
+      color: var(--muted-foreground);
+    }
+
+    #frodo-parameter-map .fpm-code-foot {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      color: var(--muted-foreground);
+    }
+
+    @keyframes fpm-enter {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #frodo-parameter-map .fpm-view,
+      #frodo-parameter-map .fpm-bar {
+        animation: none;
+        transition: none;
+      }
+    }
+
+    @media (max-width: 620px) {
+      #frodo-parameter-map .fpm-selection {
+        grid-template-columns: 1fr;
+      }
+
+      #frodo-parameter-map .fpm-matrix-flow {
+        grid-template-columns: 1fr;
+      }
+
+      #frodo-parameter-map .fpm-flow-arrow {
+        transform: rotate(90deg);
+        text-align: center;
+      }
+
+      #frodo-parameter-map .fpm-a {
+        max-width: 270px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      #frodo-parameter-map .fpm-thin {
+        width: 56px;
+        height: 130px;
+        margin: 0 auto;
+      }
+
+      #frodo-parameter-map .fpm-size-row {
+        grid-template-columns: 72px minmax(0, 1fr);
+      }
+
+      #frodo-parameter-map .fpm-bytes {
+        grid-column: 2;
+        text-align: left;
+      }
+
+      #frodo-parameter-map .fpm-code-flow {
+        grid-template-columns: 1fr;
+      }
+
+      #frodo-parameter-map .fpm-code-arrow {
+        transform: rotate(90deg);
+        text-align: center;
+      }
+    }
+  </style>
+
+  <div class="fpm-controls" role="group" aria-label="설명 화면 선택">
+    <button class="btn btn-primary" type="button" data-fpm-view="choice" aria-pressed="true">확정안</button>
+    <button class="btn" type="button" data-fpm-view="matrix" aria-pressed="false">행렬 모양</button>
+    <button class="btn" type="button" data-fpm-view="sizes" aria-pressed="false">데이터 크기</button>
+    <button class="btn" type="button" data-fpm-view="code" aria-pressed="false">구현체 역할</button>
+  </div>
+
+  <section class="fpm-view" data-fpm-panel="choice" aria-label="FrodoKEM 학습 기준 확정안">
+    <div class="fpm-selection">
+      <div>
+        <div class="fpm-choice-label">프로토콜</div>
+        <div class="fpm-choice-row">
+          <span class="fpm-picked">표준 FrodoKEM</span>
+          <span class="fpm-option">eFrodoKEM</span>
+        </div>
+      </div>
+      <div>
+        <div class="fpm-choice-label">파라미터 세트</div>
+        <div class="fpm-choice-row">
+          <span class="fpm-picked">640</span>
+          <span class="fpm-option">976</span>
+          <span class="fpm-option">1344</span>
+        </div>
+      </div>
+      <div>
+        <div class="fpm-choice-label">공개 행렬 A 생성</div>
+        <div class="fpm-choice-row">
+          <span class="fpm-picked">SHAKE128</span>
+          <span class="fpm-option">AES-128</span>
+        </div>
+      </div>
+      <div>
+        <div class="fpm-choice-label">코드 기준</div>
+        <div class="fpm-choice-row">
+          <span class="fpm-picked">REFERENCE로 학습</span>
+          <span class="fpm-arrow">→</span>
+          <span class="fpm-picked">FAST_GENERIC으로 측정</span>
+        </div>
+      </div>
+    </div>
+    <div class="card fpm-summary" aria-label="최종 선택">
+      <strong>FrodoKEM-640-SHAKE</strong>
+      <span class="viz-badge">n = 640</span>
+      <span class="viz-badge">n̄ = 8</span>
+      <span class="viz-badge">q = 2¹⁵</span>
+      <span class="viz-badge">128-bit key</span>
+    </div>
+  </section>
+
+  <section class="fpm-view" data-fpm-panel="matrix" aria-label="FrodoKEM-640 행렬 차원 그림" hidden>
+    <div class="fpm-matrix-flow">
+      <div class="fpm-seed"><strong>seedA</strong><br><span class="text-muted">16 B</span></div>
+      <div class="fpm-flow-arrow" aria-hidden="true">→</div>
+      <div class="fpm-xof"><strong>SHAKE128</strong><br><span class="text-muted">필요한 행만 생성</span></div>
+      <div class="fpm-flow-arrow" aria-hidden="true">→</div>
+      <div class="fpm-matrix fpm-a">
+        <span class="fpm-matrix-label"><strong>공개 A</strong>640 × 640<br>약 800 KiB</span>
+      </div>
+      <div class="fpm-flow-arrow" aria-hidden="true">×</div>
+      <div class="fpm-matrix fpm-thin">
+        <span class="fpm-matrix-label"><strong>비밀 S</strong>640 × 8</span>
+      </div>
+    </div>
+    <div class="fpm-small-flow">
+      <div>
+        <strong>μ = 128 bits</strong><br>
+        <span class="text-muted">셀당 2 bits</span>
+      </div>
+      <div class="fpm-flow-arrow" aria-hidden="true">→</div>
+      <div class="fpm-bits" role="img" aria-label="8 곱하기 8 메시지 행렬, 각 셀에 2비트">
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div><strong>8 × 8</strong><br><span class="text-muted">64 cells</span></div>
+    </div>
+  </section>
+
+  <section class="fpm-view" data-fpm-panel="sizes" aria-label="FrodoKEM-640 키와 암호문 크기" hidden>
+    <div class="fpm-size-chart" role="img" aria-label="비밀키 19888바이트, 암호문 9752바이트, 공개키 9616바이트, 공유 비밀 16바이트 비교">
+      <div class="fpm-size-row">
+        <strong>비밀키</strong>
+        <div class="fpm-track"><div class="fpm-bar" style="width:100%"></div></div>
+        <div class="fpm-bytes">19,888 B</div>
+      </div>
+      <div class="fpm-size-row">
+        <strong>암호문</strong>
+        <div class="fpm-track"><div class="fpm-bar" style="width:49.03%"></div></div>
+        <div class="fpm-bytes">9,752 B</div>
+      </div>
+      <div class="fpm-size-row">
+        <strong>공개키</strong>
+        <div class="fpm-track"><div class="fpm-bar" style="width:48.35%"></div></div>
+        <div class="fpm-bytes">9,616 B</div>
+      </div>
+      <div class="fpm-size-row">
+        <strong>공유 비밀</strong>
+        <div class="fpm-track"><div class="fpm-bar" style="width:0.08%"></div></div>
+        <div class="fpm-bytes">16 B</div>
+      </div>
+    </div>
+    <div class="card fpm-summary">
+      <span>큰 키·암호문</span>
+      <span class="fpm-arrow">→</span>
+      <strong>행렬과 데이터 이동 최적화가 중요</strong>
+    </div>
+  </section>
+
+  <section class="fpm-view" data-fpm-panel="code" aria-label="구현체별 역할" hidden>
+    <div class="fpm-code-flow">
+      <div class="fpm-code-node">
+        <strong>Python reference + KAT</strong>
+        <span class="fpm-role">정답 확인</span>
+      </div>
+      <div class="fpm-code-arrow" aria-hidden="true">→</div>
+      <div class="fpm-code-node">
+        <strong>C REFERENCE</strong>
+        <span class="fpm-role">수식·반복문 학습</span>
+      </div>
+      <div class="fpm-code-arrow" aria-hidden="true">→</div>
+      <div class="fpm-code-node">
+        <strong>C FAST_GENERIC</strong>
+        <span class="fpm-role">프로파일링·이식</span>
+      </div>
+    </div>
+    <div class="fpm-code-foot">
+      <span class="fpm-option">AVX2 FAST</span>
+      <span>최적화 아이디어만 참고</span>
+    </div>
+  </section>
+
+  <script>
+    (() => {
+      const root = document.getElementById('frodo-parameter-map');
+      if (!root) return;
+      const buttons = Array.from(root.querySelectorAll('[data-fpm-view]'));
+      const panels = Array.from(root.querySelectorAll('[data-fpm-panel]'));
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const target = button.dataset.fpmView;
+          buttons.forEach((item) => {
+            const active = item === button;
+            item.setAttribute('aria-pressed', String(active));
+            item.classList.toggle('btn-primary', active);
+          });
+          panels.forEach((panel) => {
+            panel.hidden = panel.dataset.fpmPanel !== target;
+          });
+        });
+      });
+    })();
+  </script>
+</div>

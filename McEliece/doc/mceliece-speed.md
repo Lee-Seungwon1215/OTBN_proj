@@ -1,0 +1,40 @@
+### NAME
+
+mceliece-speed - run some libmceliece speed tests
+
+### SYNOPSIS
+
+    mceliece-speed
+
+### DESCRIPTION
+
+`mceliece-speed`
+runs some tests of the speed of
+the libmceliece implementation of the Classic McEliece cryptosystem.
+
+The `mceliece-speed` output format is subject to change.
+Examples of output lines with the current format,
+from a `mceliece-speed` run on an Intel Haswell CPU core,
+include the following:
+
+    kem_6960119f selected implementation avx compiler clang -Wall -fPIC -fwrapv -Qunused-arguments -O2 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mbmi -mbmi2 -mpopcnt -mavx2 -mtune=haswell; Ubuntu clang version 14.0.0-1ubuntu1.1; Target: x86_64-pc-linux-gnu; Thread model: posix; InstalledDir: /usr/bin
+    kem_6960119f_keypair selected 1047319 239336111 -45926+75149-74501+77935+25323-18662-14170+21804-50286+79063+119473+24254+32692-86692-11325+11853-1641+85401+79900-36121+31647-46848-82935-77649+50771-61354+25615-19507-213-113509-15330+22405
+    kem_6960119f_enc selected 194 133429 +8665+1198+718-1682-1798-1955+3726+6311+3449+8172+423+6202-1740+68-2005-2473-2441+137-2698+6077+680-1746+1015-1769+3059+223+609+291+1042-2685-2438+534
+    kem_6960119f_dec selected 32 282786 +26439+2205+1168+72-226+118-56+122-334+23+193+46+1698+694+168-350+79-209+2-479+15+31-222-273-108+106-205+191-254+70-104-248
+
+These lines say that the automatically selected implementation for the `6960119f` parameter set
+was the `avx` implementation compiled with the `clang` options shown,
+taking an interquartile mean (IQM) of 239336111 CPU cycles to generate a key pair,
+133429 CPU cycles to encapsulate a session key,
+and
+282786 CPU cycles to decapsulate a session key.
+The numbers `282786 +26439+2205+...` show the timings for a series of consecutive operations:
+the IQM was 282786 cycles,
+the first run took 26439 cycles more than the IQM,
+the second run took 2205 cycles more than the IQM,
+etc.
+
+### SEE ALSO
+
+**mceliece**(1),
+**mceliece**(3)
