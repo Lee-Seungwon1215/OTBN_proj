@@ -434,6 +434,58 @@ bnclmulvl4:
       bits: 31,27-25
       value: b0000
 
+# Used by bn.xorcond and bn.xorcondn. The selected flag predicates the XOR of
+# wrs2 into wrs1. The invert bit distinguishes the flag-set and flag-clear
+# variants without changing their datapath.
+bnxorcond:
+  parents:
+    - custom4
+    - wdr3
+    - funct3(funct3=b010)
+    - fg
+  fields:
+    invert: 30
+    flag: 29-28
+    fixed:
+      bits: 27-25
+      value: b000
+
+# Used by bn.pivotmask4. wrs2 contains four 64-bit candidate pivot words, one
+# per lane. The current row's pivot word is selected from wrs1 by current_lane.
+# The six-bit pivot index is split between bit 30 and the usual destination
+# field because this instruction writes flags rather than a WDR. The fixed tag
+# separates this encoding from bnxorcond.
+bnpivotmask4:
+  parents:
+    - custom4
+    - funct3(funct3=b010)
+    - fg
+  fields:
+    bit_idx: 30,11-7
+    current_lane: 29-28
+    fixed:
+      bits: 27-25
+      value: b001
+    wrs2: 24-20
+    wrs1: 19-15
+
+# Used by bn.elimmask4. The source WDR contains four target-row pivot words,
+# one per 64-bit lane. The instruction writes their selected bits directly to
+# C/M/L/Z so four independent forward-elimination predicates can be prepared
+# together. The fixed tag separates this encoding from bnxorcond and
+# bnpivotmask4.
+bnelimmask4:
+  parents:
+    - custom4
+    - funct3(funct3=b010)
+    - fg
+  fields:
+    bit_idx: 30,11-7
+    wrs: 19-15
+    fixed:
+      bits: 29-20
+      value: b0001000000
+
 # Used by bn.trn1 and bn.trn2
 bnvtrn:
   parents:

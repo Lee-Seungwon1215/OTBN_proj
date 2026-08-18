@@ -620,6 +620,161 @@
       wrs1: wrs1
       wrd: wrd
 
+- mnemonic: bn.xorcond
+  synopsis: XOR if selected flag is set
+  operands: &bn-xorcond-operands
+    - name: wrd
+      doc: Name of the destination WDR
+    - name: wrs1
+      doc: WDR containing the value to preserve or update
+    - name: wrs2
+      doc: WDR containing the value to conditionally XOR into `wrs1`
+    - *bn-flag-group-operand
+    - name: flag
+      type: enum(C, M, L, Z)
+      doc: Flag used as the XOR predicate
+  syntax: &bn-xorcond-syntax |
+    <wrd>, <wrs1>, <wrs2>, [FG<flag_group>.]<flag>
+  doc: |
+    XORs `wrs2` into `wrs1` when the selected flag is set and writes the
+    result to `wrd`. If the selected flag is clear, `wrs1` is copied to
+    `wrd` unchanged.
+
+    This instruction fuses the masked AND and XOR used by the Classic
+    McEliece key-generation row-combination loops. It does not modify flags,
+    allowing one predicate to be reused across all six WDR chunks of a row.
+  errs: []
+  iflow: &bn-xorcond-iflow
+    - to: [wrd]
+      from: [wrs1, wrs2]
+    - test:
+        - flag == 0
+      to: [wrd]
+      from: [flags-c]
+    - test:
+        - flag == 1
+      to: [wrd]
+      from: [flags-m]
+    - test:
+        - flag == 2
+      to: [wrd]
+      from: [flags-l]
+    - test:
+        - flag == 3
+      to: [wrd]
+      from: [flags-z]
+  encoding:
+    scheme: bnxorcond
+    mapping:
+      invert: b0
+      fg: flag_group
+      flag: flag
+      wrs2: wrs2
+      wrs1: wrs1
+      wrd: wrd
+
+- mnemonic: bn.xorcondn
+  synopsis: XOR if selected flag is clear
+  operands: *bn-xorcond-operands
+  syntax: *bn-xorcond-syntax
+  doc: |
+    XORs `wrs2` into `wrs1` when the selected flag is clear and writes the
+    result to `wrd`. If the selected flag is set, `wrs1` is copied to `wrd`
+    unchanged.
+
+    In the Classic McEliece forward-elimination schedule, a masked pivot-bit
+    test sets Z when the target bit is zero. `BN.XORCONDN ... Z` therefore
+    performs the row update exactly when that target bit is one. Flags are not
+    modified.
+  errs: []
+  iflow: *bn-xorcond-iflow
+  encoding:
+    scheme: bnxorcond
+    mapping:
+      invert: b1
+      fg: flag_group
+      flag: flag
+      wrs2: wrs2
+      wrs1: wrs1
+      wrd: wrd
+
+- mnemonic: bn.pivotmask4
+  synopsis: Generate four prefix pivot predicates
+  operands:
+    - name: wrs1
+      doc: WDR containing the current row, including its pivot word
+    - name: wrs2
+      doc: |
+        WDR whose four 64-bit lanes contain the pivot words from four
+        consecutive candidate rows
+    - name: current_lane
+      type: uimm2
+      doc: 64-bit lane of `wrs1` containing the current pivot word
+    - name: bit_idx
+      type: uimm
+      doc: Bit index within each 64-bit pivot word; valid range is 0..63
+    - *bn-flag-group-operand
+  syntax: |
+    <wrs1>, <wrs2>, <current_lane>, <bit_idx>[, FG<flag_group>]
+  doc: |
+    Computes the four exclusive-prefix predicates needed to process four
+    Classic McEliece pivot candidates while preserving the result of the
+    original sequential search.
+
+    Let `p` be bit `bit_idx` of lane `current_lane` in `wrs1`, and let
+    `b0` through `b3` be bit `bit_idx` of lanes zero through three in `wrs2`.
+    The selected flag group is overwritten as follows:
+
+    - `C = not p`
+    - `M = not (p or b0)`
+    - `L = not (p or b0 or b1)`
+    - `Z = not (p or b0 or b1 or b2)`
+
+    These flags predicate the XOR of candidate rows zero through three. The
+    instruction has fixed control flow and does not branch on pivot data.
+  errs: []
+  iflow:
+    - to: [flags-all]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnpivotmask4
+    mapping:
+      fg: flag_group
+      bit_idx: bit_idx
+      current_lane: current_lane
+      wrs2: wrs2
+      wrs1: wrs1
+
+- mnemonic: bn.elimmask4
+  synopsis: Generate four independent elimination predicates
+  operands:
+    - name: wrs
+      doc: |
+        WDR whose four 64-bit lanes contain the pivot words from four target
+        rows
+    - name: bit_idx
+      type: uimm
+      doc: Bit index within each 64-bit pivot word; valid range is 0..63
+    - *bn-flag-group-operand
+  syntax: |
+    <wrs>, <bit_idx>[, FG<flag_group>]
+  doc: |
+    Extracts bit `bit_idx` from each 64-bit lane of `wrs` and writes the four
+    resulting forward-elimination predicates to `C`, `M`, `L`, and `Z`, in
+    lane order. Four independent target rows can then be processed as one
+    batch with `BN.XORCOND` while reusing the predicates for all six WDR
+    chunks. The instruction has fixed control flow.
+  errs: []
+  iflow:
+    - to: [flags-all]
+      from: [wrs]
+  encoding:
+    scheme: bnelimmask4
+    mapping:
+      fg: flag_group
+      bit_idx: bit_idx
+      wrs: wrs
+
 - mnemonic: bn.cmp
   synopsis: Compare
   operands: &bn-cmp-operands

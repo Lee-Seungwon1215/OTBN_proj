@@ -1010,6 +1010,89 @@ class BNSEL(OTBNInsn):
         state.wdrs.get_reg(self.wrd).write_unsigned(value)
 
 
+class BnXorCond(OTBNInsn):
+    """Common implementation for flag-set/flag-clear conditional XOR."""
+
+    invert = False
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.flag_group = op_vals['flag_group']
+        self.flag = op_vals['flag']
+
+    def execute(self, state: OTBNState) -> None:
+        value = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        xor_value = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        flag_is_set = state.csrs.flags[self.flag_group].get_by_idx(self.flag)
+        should_xor = flag_is_set != self.invert
+
+        result = value ^ xor_value if should_xor else value
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNXORCOND(BnXorCond):
+    insn = insn_for_mnemonic('bn.xorcond', 5)
+
+
+class BNXORCONDN(BnXorCond):
+    insn = insn_for_mnemonic('bn.xorcondn', 5)
+    invert = True
+
+
+class BNPIVOTMASK4(OTBNInsn):
+    insn = insn_for_mnemonic('bn.pivotmask4', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.current_lane = op_vals['current_lane']
+        self.bit_idx = op_vals['bit_idx']
+        self.flag_group = op_vals['flag_group']
+
+    def execute(self, state: OTBNState) -> None:
+        current = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        candidates = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        current_word = extract_vec_elem(current, self.current_lane, 64)
+        found_pivot = bool((current_word >> self.bit_idx) & 1)
+        predicates = []
+        for lane in range(4):
+            predicates.append(not found_pivot)
+            candidate_word = extract_vec_elem(candidates, lane, 64)
+            found_pivot |= bool((candidate_word >> self.bit_idx) & 1)
+
+        state.set_flags(
+            self.flag_group,
+            FlagReg(C=predicates[0], M=predicates[1],
+                    L=predicates[2], Z=predicates[3]))
+
+
+class BNELIMMASK4(OTBNInsn):
+    insn = insn_for_mnemonic('bn.elimmask4', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrs = op_vals['wrs']
+        self.bit_idx = op_vals['bit_idx']
+        self.flag_group = op_vals['flag_group']
+
+    def execute(self, state: OTBNState) -> None:
+        target_words = state.wdrs.get_reg(self.wrs).read_unsigned()
+        predicates = []
+        for lane in range(4):
+            target_word = extract_vec_elem(target_words, lane, 64)
+            predicates.append(bool((target_word >> self.bit_idx) & 1))
+
+        state.set_flags(
+            self.flag_group,
+            FlagReg(C=predicates[0], M=predicates[1],
+                    L=predicates[2], Z=predicates[3]))
+
+
 class BNCMP(OTBNInsn):
     insn = insn_for_mnemonic('bn.cmp', 5)
 
@@ -1870,7 +1953,7 @@ INSN_CLASSES = [
     BNSUB, BNSUBB, BNSUBI, BNSUBM,
     BNAND, BNOR, BNNOT, BNXOR,
     BNRSHI,
-    BNSEL,
+    BNSEL, BNXORCOND, BNXORCONDN, BNPIVOTMASK4, BNELIMMASK4,
     BNCMP, BNCMPB,
     BNLID, BNSID,
     BNMOV, BNMOVR,
