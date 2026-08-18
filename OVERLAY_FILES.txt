@@ -1,0 +1,11 @@
+hw/ip/otbn/data/bignum-insns.yml
+hw/ip/otbn/data/enc-schemes.yml
+hw/ip/otbn/dv/otbnsim/sim/insn.py
+hw/ip/otbn/dv/otbnsim/test/clmulvl4_test.py
+hw/ip/otbn/dv/otbnsim/test/simple/insns/bn_clmulvl4.exp
+hw/ip/otbn/dv/otbnsim/test/simple/insns/bn_clmulvl4.s
+hw/ip/otbn/dv/otbnsim/test/simple/insns/bn_clmulvl4_schoolbook.exp
+hw/ip/otbn/dv/otbnsim/test/simple/insns/bn_clmulvl4_schoolbook.s
+sw/otbn/code-snippets/BUILD
+sw/otbn/code-snippets/README.md
+sw/otbn/code-snippets/clmul256.s
