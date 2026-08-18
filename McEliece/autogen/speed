@@ -1,0 +1,347 @@
+#!/usr/bin/env python3
+
+output = r'''/* WARNING: auto-generated (by autogen/speed); do not edit */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/resource.h>
+#include <cpucycles.h> /* -lcpucycles */
+#include <mceliece.h> /* -lmceliece */
+#include <randombytes.h> /* -lrandombytes */
+
+static const char *targeto = 0;
+static const char *targetp = 0;
+static const char *targeti = 0;
+
+#include "limits.inc"
+
+static void *callocplus(long long len)
+{
+  void *x = calloc(1,len + 128);
+  if (!x) abort();
+  return x;
+}
+
+static void *aligned(void *x)
+{
+  unsigned char *y = (unsigned char *) x;
+  y += 63 & (-(unsigned long) x);
+  return y;
+}
+
+static void longlong_sort(long long *x,long long n)
+{
+  long long top,p,q,r,i;
+
+  if (n < 2) return;
+  top = 1;
+  while (top < n - top) top += top;
+
+  for (p = top;p > 0;p >>= 1) {
+    for (i = 0;i < n - p;++i)
+      if (!(i & p))
+        if (x[i] > x[i+p]) {
+          long long t = x[i];
+          x[i] = x[i+p];
+          x[i+p] = t;
+        }
+    i = 0;
+    for (q = top;q > p;q >>= 1) {
+      for (;i < n - q;++i) {
+        if (!(i & p)) {
+          long long a = x[i + p];
+          for (r = q;r > p;r >>= 1)
+            if (a > x[i+r]) {
+              long long t = a;
+              a = x[i+r];
+              x[i+r] = t;
+            }
+          x[i + p] = a;
+        }
+      }
+    }
+  }
+}
+
+#define TIMINGS 32 // must be multiple of 4
+static long long t[TIMINGS+1];
+
+static void t_print(const char *op,long long impl,long long len)
+{
+  long long tsort[TIMINGS];
+  long long iqm = 0;
+
+  printf("%s",op);
+  if (impl >= 0)
+    printf(" %lld",impl);
+  else
+    printf(" selected");
+  printf(" %lld",len);
+  for (long long i = 0;i < TIMINGS;++i)
+    tsort[i] = t[i] = t[i+1]-t[i];
+  longlong_sort(tsort,TIMINGS);
+
+  for (long long j = TIMINGS/4;j < 3*TIMINGS/4;++j)
+    iqm += tsort[j];
+  iqm *= 2;
+  iqm += TIMINGS/2;
+  iqm /= TIMINGS;
+
+  printf(" %lld ",iqm);
+  for (long long i = 0;i < TIMINGS;++i)
+    printf("%+lld",t[i]-iqm);
+  printf("\n");
+  fflush(stdout);
+}
+
+#define MAXTEST_BYTES 65536
+
+static void measure_cpucycles(void)
+{
+  printf("cpucycles selected persecond %lld\n",cpucycles_persecond());
+  printf("cpucycles selected implementation %s\n",cpucycles_implementation());
+
+  for (long long i = 0;i <= TIMINGS;++i)
+    t[i] = cpucycles();
+  t_print("cpucycles",-1,0);
+}
+
+static void measure_randombytes(void)
+{
+  void *mstorage = callocplus(MAXTEST_BYTES);
+  unsigned char *m = (unsigned char *) aligned(mstorage);
+  long long mlen = 0;
+
+  while (mlen < MAXTEST_BYTES) {
+    for (long long i = 0;i <= TIMINGS;++i) {
+      t[i] = cpucycles();
+      randombytes(m,mlen);
+    }
+    t_print("randombytes",-1,mlen);
+    mlen += 1+mlen/2;
+  }
+  free(mstorage);
+}
+'''
+
+# XXX: integrate todo into api
+todo = (
+  ('sort',(
+    ('m','MAXTEST_BYTES'),
+    ('mlen',None),
+  ),(
+    ('crypto_sort','m','mlen'),
+  )),
+  ('xof',(
+    ('h','MAXTEST_BYTES'),
+    ('hlen',None),
+    ('m','MAXTEST_BYTES'),
+    ('mlen',None),
+  ),(
+    ('crypto_xof','h','hlen','m','mlen'),
+  )),
+  ('kem',(
+    ('p','mceliece_kem_PUBLICKEYBYTES'),
+    ('s','mceliece_kem_SECRETKEYBYTES'),
+    ('c','mceliece_kem_CIPHERTEXTBYTES'),
+    ('k','mceliece_kem_BYTES'),
+    ('T','mceliece_kem_BYTES'),
+  ),(
+    ('crypto_kem_keypair','p','s'),
+    ('crypto_kem_enc','c','k','p'),
+    ('crypto_kem_dec','T','c','s'),
+  )),
+)
+
+operations = []
+primitives = {}
+sizes = {}
+exports = {}
+prototypes = {}
+
+with open('api') as f:
+  for line in f:
+    line = line.strip()
+    if line.startswith('crypto_'):
+      x = line.split()
+      x = x[0].split('/')
+      assert len(x) == 2
+      o = x[0].split('_')[1]
+      if o not in operations: operations += [o]
+      p = x[1]
+      if o not in primitives: primitives[o] = []
+      primitives[o] += [p]
+      continue
+    if line.startswith('#define '):
+      x = line.split(' ')
+      x = x[1].split('_')
+      assert len(x) == 4
+      assert x[0] == 'crypto'
+      o = x[1]
+      p = x[2]
+      if (o,p) not in sizes: sizes[o,p] = ''
+      sizes[o,p] += line+'\n'
+      continue
+    if line.endswith(');'):
+      fun,args = line[:-2].split('(')
+      rettype,fun = fun.split()
+      fun = fun.split('_')
+      o = fun[1]
+      assert fun[0] == 'crypto'
+      if o not in exports: exports[o] = []
+      exports[o] += ['_'.join(fun[1:])]
+      if o not in prototypes: prototypes[o] = []
+      prototypes[o] += [(rettype,fun,args)]
+
+for t in todo:
+  o,vars,benches = t
+
+  for p in primitives[o]:
+
+    output += '\n'
+    output += 'static void measure_%s_%s(void)\n' % (o,p)
+    output += '{\n'
+
+    output += '  if (targeto && strcmp(targeto,"%s")) return;\n' % o
+    output += '  if (targetp && strcmp(targetp,"%s")) return;\n' % p
+
+    varsize = {}
+    for v,size in vars:
+      if size is None:
+        output += '  long long %s;\n' % v
+      else:
+        size = size.replace('mceliece_'+o,'mceliece_'+o+'_'+p)
+        output += '  void *%sstorage = callocplus(%s);\n' % (v,size)
+        output += '  unsigned char *%s = (unsigned char *) aligned(%sstorage);\n' % (v,v)
+        varsize[v] = size
+    output += '\n'
+  
+    output += '  for (long long impl = -1;impl < mceliece_numimpl_%s_%s();++impl) {\n' % (o,p)
+    for rettype,fun,args in prototypes[o]:
+      output += '    %s (*%s)(%s);\n' % (rettype,'_'.join(fun),args)
+
+    output += '    if (targeti && strcmp(targeti,mceliece_dispatch_%s_%s_implementation(impl))) continue;\n' % (o,p)
+
+    output += '    if (impl >= 0) {\n'
+    for rettype,fun,args in prototypes[o]:
+      f2 = ['mceliece','dispatch',o,p]+fun[2:]
+      output += '      %s = %s(impl);\n' % ('_'.join(fun),'_'.join(f2))
+    output += r'      printf("%s_%s %%lld implementation %%s compiler %%s\n",impl,mceliece_dispatch_%s_%s_implementation(impl),mceliece_dispatch_%s_%s_compiler(impl));' % (o,p,o,p,o,p)
+    output += '\n'
+    output += '    } else {\n'
+    for rettype,fun,args in prototypes[o]:
+      f2 = ['mceliece',o,p]+fun[2:]
+      output += '      %s = %s;\n' % ('_'.join(fun),'_'.join(f2))
+    output += r'      printf("%s_%s selected implementation %%s compiler %%s\n",mceliece_%s_%s_implementation(),mceliece_%s_%s_compiler());' % (o,p,o,p,o,p)
+    output += '\n'
+    output += '    }\n'
+
+    for v,size in vars:
+      if size is not None:
+        size = size.replace('mceliece_'+o,'mceliece_'+o+'_'+p)
+        output += '    randombytes(%s,%s);\n' % (v,size)
+
+    alreadybenched = set()
+    alreadybenched.add('assert')
+
+    for b in benches:
+      if b[0] in alreadybenched:
+        output += '    %s(%s);\n' % (b[0],','.join(b[1:]))
+        continue
+
+      fun = b[0].split('_')
+      shortfun = '_'.join([o,p]+fun[2:])
+      alreadybenched.add(b[0])
+
+      if 'mlen' in b[1:]:
+        if b[0] == 'crypto_xof':
+          output += '    hlen = 32;\n'
+        output += '    mlen = 0;\n'
+
+        if b[0] == 'crypto_sort':
+          output += '    while (mceliece_%s_%s_BYTES*mlen <= MAXTEST_BYTES) {\n' % (o,p)
+          output += '      randombytes(m,mceliece_%s_%s_BYTES*mlen);\n' % (o,p)
+        else:
+          output += '    while (mlen <= MAXTEST_BYTES) {\n'
+          output += '      randombytes(m,mlen);\n'
+
+        output += '      for (long long i = 0;i <= TIMINGS;++i) {\n'
+        output += '        t[i] = cpucycles();\n'
+        output += '        %s(%s);\n' % (b[0],','.join(b[1:]))
+        output += '      }\n'
+        output += '      t_print("%s",impl,mlen);\n' % (shortfun)
+
+        output += '      mlen += 1+mlen/2;\n'
+        output += '    }\n'
+      else:
+        output += '    for (long long i = 0;i <= TIMINGS;++i) {\n'
+        output += '      t[i] = cpucycles();\n'
+        output += '      %s(%s);\n' % (b[0],','.join(b[1:]))
+        output += '    }\n'
+        output += '    t_print("%s",impl,%s);\n' % (shortfun,varsize[b[1]])
+
+      if 'hlen' in b[1:]:
+        if b[0] == 'crypto_xof':
+          output += '    mlen = 32;\n'
+
+        output += '    hlen = 1;\n'
+        output += '    while (hlen <= MAXTEST_BYTES) {\n'
+        output += '      randombytes(h,hlen);\n'
+
+        output += '      for (long long i = 0;i <= TIMINGS;++i) {\n'
+        output += '        t[i] = cpucycles();\n'
+        output += '        %s(%s);\n' % (b[0],','.join(b[1:]))
+        output += '      }\n'
+        output += '      t_print("%s",impl,-hlen);\n' % (shortfun)
+
+        output += '      hlen += 1+hlen/2;\n'
+        output += '    }\n'
+
+    output += '  }\n'
+    for v,size in reversed(vars):
+      if size is not None:
+        output += '  free(%sstorage);\n' % v
+    output += '}\n'
+
+output += r'''
+#include "print_cpuid.inc"
+
+int main(int argc,char **argv)
+{
+  printf("mceliece version %s\n",mceliece_version);
+  printf("mceliece arch %s\n",mceliece_arch);
+  print_cpuid();
+
+  if (*argv) ++argv;
+  if (*argv) {
+    targeto = *argv++;
+    if (*argv) {
+      targetp = *argv++;
+      if (*argv) {
+        targeti = *argv++;
+      }
+    }
+  }
+
+  measure_cpucycles();
+  measure_randombytes();
+  limits();
+'''
+
+for t in todo:
+  o,vars,benches = t
+  for p in primitives[o]:
+    output += '  measure_%s_%s();\n' % (o,p)
+
+output += r'''
+  return 0;
+}
+'''
+
+with open('command/mceliece-speed.c','w') as f:
+  f.write(output)

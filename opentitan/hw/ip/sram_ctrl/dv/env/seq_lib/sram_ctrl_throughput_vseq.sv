@@ -1,0 +1,160 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
+// Test maximum sram throughput with zero_delays=1
+//
+// The minimum possible time for an SRAM operation is two cycles (one for the A channel request,
+// then one for the D channel response). Since these operations can run back-to-back with the A and
+// D channels both busy, the highest possible throughput is that N operations take N+1 cycles. (Note
+// that the timing in the TL agent means this will be counted as N+2, which is explained in detail
+// in a comment in the body task).
+//
+// If readback is not enabled and the operation is a read or complete write, the timing should be as
+// described above. If the operation is a partial write, it actually expands into a
+// read-modify-write. This takes 4 cycles instead of the 2 for a read or complete write, so the
+// expected time will be 2 cycles more.
+//
+// If readback is enabled, operations don't overlap in the same way. Read operations take 2 cycles.
+// Write operations take three cycles (SRAM write request; SRAM write response / SRAM read request;
+// SRAM read response). The TL response to the write operation comes after the SRAM response, so the
+// latency is still 2 cycles. As the operations don't overlap, a write operation adds 3 cycles to
+// the total time unless it is the last operation, in which case it will only add 2.
+
+class sram_ctrl_throughput_vseq extends sram_ctrl_smoke_vseq;
+  `uvm_object_utils(sram_ctrl_throughput_vseq)
+
+  `uvm_object_new
+
+  int num_partial_write;
+
+  // Track the number of writes and reads and whether the most recent transaction
+  // was a write. This is updated in get_rand_mask.
+  int num_writes;
+  int num_reads;
+  int last_was_write;
+
+  task body();
+    // In order to have max throughput, don't drop a_valid
+    cfg.m_tl_agent_cfgs[cfg.sram_ral_name].allow_a_valid_drop_wo_a_ready = 0;
+
+    req_mem_init();
+    if (init_w_readback) begin
+      // Init the sequence with the SRAM readback feature enabled.
+      csr_wr(.ptr(ral.readback), .value(MuBi4True));
+    end
+
+    // And wait for side_effects of ram_init to be done, since detection of the end is not very
+    // accurate and memory transactions wll be blocked until init is completely done. The number
+    // 20 below is not special, it is just a sensible guess.
+    cfg.clk_rst_vif.wait_clks(20);
+
+    for (int i = 0; i < num_trans; i++) begin
+      int num_cycles = 0;
+
+      num_partial_write = 0;
+
+      num_writes = 0;
+      num_reads = 0;
+      last_was_write = 0;
+
+      `DV_CHECK_MEMBER_RANDOMIZE_FATAL(num_ops)
+      `uvm_info(`gfn, $sformatf("iteration: %0d, issuing %0d ops", i, num_ops), UVM_LOW)
+
+      // Since we expect this vseq to be the only thing sending operations to SRAM, we can be sure
+      // that tl_host_driver is currently waiting in seq_item_port.get_next_item(): any previous
+      // iteration needed to wait for the D channel response to come back before it finished,
+      // leaving a gap with no A channel transaction.
+      //
+      // As such, we expect an extra cycle for the first operation in the do_rand_ops() call. This
+      // will be reflected in a "1 + " added to each expected time.
+
+      `DV_SPINWAIT_EXIT(
+          // thread 1 to count cycles
+          forever begin
+            cfg.clk_rst_vif.wait_clks(1);
+            num_cycles++;
+          end,
+          // thread 2 to do sram OPs
+          // Don't access unimplemented addressed in the case of non-power-of-2 SRAM sizes as these
+          // behave differently (they're not even forwarded to the scrambling engine and return an
+          // error).
+          do_rand_ops(.num_ops(num_ops),
+                      .not_use_out_of_range_addr(1),
+                      .blocking(0));)
+
+      `uvm_info(`gfn, $sformatf("num_cycles: %0d, num_ops: %0d, num_partial_write: %0d",
+                                num_cycles, num_ops, num_partial_write), UVM_MEDIUM)
+      if (init_w_readback) begin
+        // In throughput_w_readback test, if the last operation was a write, subtract
+        // one as the write already gets acknowledged over TLUL while the readback error
+        // is still doing the readback of the written value.
+        //
+        // Note that this sequence does not currently send partial writes when readback is enabled.
+        // The hardware supports the combination, but it is not yet tested by this sequence (which
+        // runs with partial_access_pct=0 in this situation).
+        int unsigned exp_w_time    = 3 * num_writes;
+        int unsigned exp_r_time    = 2 * num_reads;
+        int unsigned exp_full_time = 1 + exp_r_time + exp_w_time - last_was_write;
+
+        if (num_cycles != exp_full_time) begin
+          string sub_msg = "";
+          if (last_was_write) begin
+            sub_msg = "The last operation was a write, so subtract one from the expected length. ";
+          end
+          `uvm_error(get_full_name(),
+                     $sformatf({"Mismatch in time taken for %0d operations with readback. ",
+                                "After aligning with the clock, there were %0d writes ",
+                                "(allowed 3 cycles each) and %0d reads (allowed two cycles each). ",
+                                "%0sThis gives a total expected time of %0d cycles but we ",
+                                "actually took %0d cycles."},
+                               num_ops,
+                               num_writes,
+                               num_reads,
+                               sub_msg,
+                               exp_full_time,
+                               num_cycles))
+        end
+      end else begin
+        int unsigned num_full_ops  = num_ops - num_partial_write;
+        int unsigned full_op_time  = 1 * num_full_ops;
+        int unsigned rmw_time      = 3 * num_partial_write;
+        int unsigned expected_time = 1 + full_op_time + rmw_time + 1;
+
+        if (num_cycles != expected_time) begin
+          `uvm_error(get_full_name(),
+                     $sformatf({"Mismatch in time taken for %0d operations without readback. ",
+                                "There were %0d full operations (allowed 1 cycle each) ",
+                                "and %0d partial ones (allowed 3 cycles each). After adding one ",
+                                "cycle at the start to align with the clock and another for the ",
+                                "tail response, the expected time was %0d cycles. ",
+                                "We actually took %0d cycles."},
+                               num_ops,
+                               num_full_ops,
+                               num_partial_write,
+                               expected_time,
+                               num_cycles))
+        end
+      end
+    end
+  endtask : body
+
+  // override the function to count how many reads, writes, and partial writes are sent
+  virtual function bit[bus_params_pkg::BUS_DBW-1:0] get_rand_mask(bit write);
+    bit [bus_params_pkg::BUS_DBW-1:0] mask = super.get_rand_mask(write);
+
+    if (write && mask != '1) num_partial_write++;
+
+    // Keep track of number of writes and reads for readback test.
+    if (write) begin
+      num_writes++;
+      last_was_write = 1;
+    end else begin
+      num_reads++;
+      last_was_write = 0;
+    end
+
+    return mask;
+  endfunction
+
+endclass : sram_ctrl_throughput_vseq

@@ -1,0 +1,20 @@
+operation xof
+primitive bitwrite16
+note: considering machines supporting default
+note: priority 1.0266496346153846 for 64 C1
+note: priority 2.029004153846154 for 64x4 C1
+note: priority 2.2780494423076925 for 64x4x2 C1
+note: priority 2.3410783870967746 for 64 C0
+note: priority 4.418148225806451 for 64x4 C0
+note: priority 4.606047741935484 for 64x4x2 C0
+note: priority 7.993166225806451 for ref C0
+note: priority 8.491274019230769 for ref C1
+selected default 64 C1
+impl 64 C0
+impl 64 C1
+impl 64x4 C0
+impl 64x4 C1
+impl 64x4x2 C0
+impl 64x4x2 C1
+impl ref C0
+impl ref C1

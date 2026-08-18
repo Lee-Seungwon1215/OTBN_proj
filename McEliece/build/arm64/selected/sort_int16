@@ -1,0 +1,8 @@
+operation sort
+primitive int16
+note: considering machines supporting default
+note: priority 1.0004345 for portable4 C1
+note: priority 1.0218651612903227 for portable4 C0
+selected default portable4 C1
+impl portable4 C0
+impl portable4 C1

@@ -1,0 +1,48 @@
+CAPI=2:
+# Copyright lowRISC contributors (OpenTitan project).
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+name: "lowrisc:dv:rom_ctrl_env:0.1"
+description: "ROM_CTRL DV UVM environment"
+filesets:
+  files_rtl:
+    depend:
+      - lowrisc:ip:rom_ctrl
+  files_dv:
+    depend:
+      - lowrisc:dv:ralgen
+      - lowrisc:dv:cip_lib
+      - lowrisc:dv:rom_ctrl_bkdr_util
+      - lowrisc:dv:kmac_app_agent
+      - lowrisc:dv:rom_ctrl_ifs
+    files:
+      - rom_ctrl_prim_ral_pkg.sv
+      - rom_ctrl_env_pkg.sv
+      - rom_ctrl_addr_force_item.svh: {is_include_file: true}
+      - rom_ctrl_addr_force_driver.svh: {is_include_file: true}
+      - seq_lib/rom_ctrl_skip_middle_seq.svh: {is_include_file: true}
+      - rom_ctrl_kmac_rsp_force_item.svh: {is_include_file: true}
+      - rom_ctrl_kmac_rsp_force_driver.svh: {is_include_file: true}
+      - seq_lib/rom_ctrl_override_digest_seq.svh: {is_include_file: true}
+      - rom_ctrl_env_cfg.sv: {is_include_file: true}
+      - rom_ctrl_env_cov.sv: {is_include_file: true}
+      - rom_ctrl_virtual_sequencer.sv: {is_include_file: true}
+      - rom_ctrl_scoreboard.sv: {is_include_file: true}
+      - rom_ctrl_env.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+
+generate:
+  ral:
+    generator: ralgen
+    parameters:
+      name: rom_ctrl
+      ip_hjson: ../../data/rom_ctrl.hjson
+    position: prepend
+
+targets:
+  default:
+    filesets:
+      - files_rtl
+      - files_dv
+    generate:
+      - "!chip_level ? (ral)"

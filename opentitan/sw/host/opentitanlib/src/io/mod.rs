@@ -1,0 +1,16 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
+pub mod console;
+pub mod eeprom;
+pub mod emu;
+pub mod fpga_backdoor;
+pub mod gpio;
+pub mod i2c;
+pub mod ioexpander;
+pub mod jtag;
+pub mod middleware;
+pub mod spi;
+pub mod uart;
+pub mod usb;

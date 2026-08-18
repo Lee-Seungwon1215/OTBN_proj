@@ -1,0 +1,41 @@
+#!/bin/sh
+
+mkdir -p doc/man
+
+pandoc --standalone --to man --metadata title=mceliece --metadata section=3 < doc/api.md | sed 's/^    //' > doc/man/mceliece.3
+for size in 6960119 6688128 8192128 460896 348864
+do
+  for param in "$size" "$size"f "$size"pc "$size"pcf
+  do
+    for manpage in "$param" "$param"_keypair "$param"_enc "$param"_dec
+    do
+      rm -f doc/man/mceliece"$manpage".3
+      ln -s mceliece.3 doc/man/mceliece"$manpage".3
+    done
+  done
+done
+
+pandoc --standalone --to man --metadata title=mceliece --metadata section=1 < doc/cli.md | sed 's/^    //' > doc/man/mceliece.1
+for size in 6960119 6688128 8192128 460896 348864
+do
+  for param in "$size" "$size"pc
+  do
+    for manpage in "$param" "$param"-keypair "$param"-enc "$param"-dec
+    do
+      rm -f doc/man/mceliece"$manpage".1
+      ln -s mceliece.1 doc/man/mceliece"$manpage".1
+    done
+  done
+  for param in "$size"f "$size"pcf
+  do
+    for manpage in "$param" "$param"-keypair
+    do
+      rm -f doc/man/mceliece"$manpage".1
+      ln -s mceliece.1 doc/man/mceliece"$manpage".1
+    done
+  done
+done
+
+pandoc --standalone --to man --metadata title=mceliece-test --metadata section=1 < doc/mceliece-test.md | sed 's/^    //' > doc/man/mceliece-test.1
+pandoc --standalone --to man --metadata title=mceliece-fulltest --metadata section=1 < doc/mceliece-fulltest.md | sed 's/^    //' > doc/man/mceliece-fulltest.1
+pandoc --standalone --to man --metadata title=mceliece-speed --metadata section=1 < doc/mceliece-speed.md | sed 's/^    //' > doc/man/mceliece-speed.1

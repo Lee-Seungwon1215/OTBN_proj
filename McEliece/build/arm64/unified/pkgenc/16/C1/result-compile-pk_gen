@@ -1,0 +1,4 @@
+pk_gen.c:162:28: warning: variable length array folded to constant array as an extension [-Wgnu-folding-constant]
+  162 |         uint64_t mat[ PK_NROWS ][ nblocks_H ];
+      |                                   ^~~~~~~~~
+1 warning generated.

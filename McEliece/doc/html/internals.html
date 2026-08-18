@@ -1,0 +1,393 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style type="text/css">
+html{overflow-y:scroll;background-color:#196069}
+body{font-family:"Noto Sans","Droid Sans","DejaVu Sans","Arial",sans-serif;line-height:1.5}
+tt,code{background-color:#f0f0f0;font-family:Consolas,Monaco,"Noto Sans Mono","DejaVu Sans Mono",monospace,sans-serif;font-size:1em;}
+pre{margin-left:3em}
+p,ul,ol,blockquote,pre{font-size:1.0em;line-height:1.6}
+li p{font-size:1.0em}
+blockquote p{font-size:1.0em}
+h1{font-size:1.5em}
+h2{font-size:1.3em}
+h3{font-size:1.0em}
+h1 a{text-decoration:none}
+table{border-collapse:collapse}
+th,td{border:1px solid black}
+table a{text-decoration:none}
+table tr{font-size:1.0em;line-height:1.6em}
+table tr{font-size:1.0em;line-height:1.5}
+tbody tr:nth-child(20n+1){background-color:#f0ffff}
+tbody tr:nth-child(20n+2){background-color:#f0ffff}
+tbody tr:nth-child(20n+3){background-color:#f0ffff}
+tbody tr:nth-child(20n+4){background-color:#f0ffff}
+tbody tr:nth-child(20n+5){background-color:#f0ffff}
+tbody tr:nth-child(20n+6){background-color:#f0ffff}
+tbody tr:nth-child(20n+7){background-color:#f0ffff}
+tbody tr:nth-child(20n+8){background-color:#f0ffff}
+tbody tr:nth-child(20n+9){background-color:#f0ffff}
+tbody tr:nth-child(20n+10){background-color:#f0ffff}
+tbody tr:nth-child(20n+11){background-color:#fffff0}
+tbody tr:nth-child(20n+12){background-color:#fffff0}
+tbody tr:nth-child(20n+13){background-color:#fffff0}
+tbody tr:nth-child(20n+14){background-color:#fffff0}
+tbody tr:nth-child(20n+15){background-color:#fffff0}
+tbody tr:nth-child(20n+16){background-color:#fffff0}
+tbody tr:nth-child(20n+17){background-color:#fffff0}
+tbody tr:nth-child(20n+18){background-color:#fffff0}
+tbody tr:nth-child(20n+19){background-color:#fffff0}
+tbody tr:nth-child(20n+20){background-color:#fffff0}
+
+#headline{display:block;margin:0;padding:0;color:#ffffff;background-color:#196069}
+#headline .text{font-weight:bold;font-size:1.0em}
+#headline input{display:none}
+#nav ul{margin:0;padding:0}
+#nav li{list-style-type:none;margin:0;padding:0}
+.navtop{padding-bottom:0.5em;font-weight:bold;font-size:1.0em}
+.navtop{background-color:#196069;color:#ffffff}
+#nav .here{background-color:#196069;color:#ffffff}
+#nav .away{background-color:#196069;color:#ffffff}
+#nav .away a{text-decoration:none;display:block;color:#ffffff}
+#nav .away a:hover,.away a:active{text-decoration:underline}
+#hidemenu{visibility:hidden;display:none;overflow:hidden;position:fixed;top:0;left:0;height:100%;width:100%}
+
+.main{padding:5px}
+.main{background-color:#ffffff}
+.pagetitle{font-size:1.4em;font-weight:bold}
+@media only screen and (min-width:512px) {
+  .navtop{padding-top:5px}
+  #headline{top:0;margin:0;width:160px;height:100%;position:fixed;overflow:auto}
+  #headline .noselect{display:none}
+  #headline #nav{visibility:visible;display:block;width:auto;height:auto}
+  .main{margin-left:170px}
+  #headline #hidemenu{visibility:hidden}
+}
+@media not screen and (min-width:512px) {
+  #headline .noselect{-webkit-user-select:none;-ms-user-select:none;user-select:none;}
+  #headline #nav #navbot{visibility:hidden;position:fixed;top:0;left:-70%;z-index:2;transition:0.2s;margin:0;padding:0}
+  #headline input:checked ~ #nav #navbot{height:100%;position:fixed;top:0;left:0;visibility:visible;display:block;box-sizing:border-box;-moz-box-sizing:border-box;-webkit-box-sizing:border-box;vertical-align:center;font-size:1.0em;width:70%;overflow:auto}
+  #headline input:checked ~ #hidemenu{visibility:visible;display:block;background:black;opacity:0.3;z-index:1}
+}
+</style>
+<title>
+libmceliece: Internals</title>
+</head>
+<body>
+<label id=headline>
+<input type=checkbox />
+<nav id=nav>
+<div class=navtop>
+<span class=noselect>≡</span>
+libmceliece</div>
+<ul id=navbot>
+<li class=away><a href=index.html>Intro</a>
+</li><li class=away><a href=download.html>Download</a>
+</li><li class=away><a href=install.html>Install</a>
+</li><li class=away><a href=test.html>Test</a>
+</li><li class=away><a href=api.html>API</a>
+</li><li class=away><a href=cli.html>CLI</a>
+</li><li class=away><a href=security.html>Security</a>
+</li><li class=away><a href=verification.html>Verification</a>
+</li><li class=away><a href=speed.html>Speed</a>
+</li><li class=here>Internals
+</li><li class=away><a href=people.html>People</a>
+</li><li class=away><a href=license.html>License</a>
+</li></ul></nav>
+<div id=hidemenu></div>
+</label>
+<div class=main>
+<div class=pagetitle>libmceliece: Internals</div>
+<p>This document explains the internal structure of libmceliece, and explains
+how to add new instruction sets and new implementations. The libmceliece
+infrastructure is adapted from the lib25519 infrastructure.</p>
+<h2>Primitives</h2>
+<p>The directories <code>crypto_*/*</code> inside libmceliece define the following
+primitives:</p>
+<ul>
+<li>
+<p><code>crypto_xof/bitwrite16</code>: <code>crypto_xof_bitwrite16(out,outlen,in,inlen)</code>
+  computes bytes <code>out[0]</code>, <code>out[1]</code>, ..., <code>out[outlen-1]</code> from bytes
+  <code>in[0]</code>, <code>in[1]</code>, ..., <code>in[inlen-1]</code> as follows.
+  The first 2 input bytes are viewed (in little-endian form) as a 16-bit
+  integer; the next 2 input bytes are viewed as a 16-bit integer; and so
+  on, with any remaining byte ignored. Bit position i in the output is 1
+  if i modulo 65536 is one of these 16-bit integers, otherwise 0.</p>
+</li>
+<li>
+<p><code>crypto_xof/shake256</code>: <code>crypto_xof_shake256(out,outlen,in,inlen)</code>
+  computes bytes <code>out[0]</code>, <code>out[1]</code>, ..., <code>out[outlen-1]</code> as the first
+  <code>outlen</code> bytes of the (infinitely long) SHAKE256 hash of bytes
+  <code>in[0]</code>, <code>in[1]</code>, ..., <code>in[inlen-1]</code>.</p>
+</li>
+<li>
+<p><code>crypto_sort/int16</code>: <code>crypto_sort_int16(x,n)</code> sorts the <code>int16</code>
+  values <code>x[0]</code>, <code>x[1]</code>, ..., <code>x[n-1]</code>.</p>
+</li>
+<li>
+<p><code>crypto_sort/int32</code>: <code>crypto_sort_int32(x,n)</code> sorts the <code>int32</code>
+  values <code>x[0]</code>, <code>x[1]</code>, ..., <code>x[n-1]</code>.</p>
+</li>
+<li>
+<p><code>crypto_sort/int64</code>: <code>crypto_sort_int64(x,n)</code> sorts the <code>int64</code>
+  values <code>x[0]</code>, <code>x[1]</code>, ..., <code>x[n-1]</code>.</p>
+</li>
+<li>
+<p><code>crypto_kem/*</code>: <code>crypto_kem_6960119_keypair(pk,sk)</code> is key generation
+  for the <code>6960119</code> parameter set, and is provided by the
+  <a href="api.html">stable API</a>
+  as <code>mceliece6960119_keypair</code>. Similar comments apply to <code>enc</code> and <code>dec</code>,
+  to the <code>f</code> variants, and to sizes other than <code>6960119</code>.</p>
+</li>
+</ul>
+<p>libmceliece includes a command-line utility <code>mceliece-test</code> that runs
+some tests for each of these primitives, and another utility
+<code>mceliece-speed</code> that measures cycle counts for each of these
+primitives.</p>
+<p>As in SUPERCOP and NaCl, message lengths intentionally use <code>long long</code>,
+not <code>size_t</code>. In libmceliece, as in lib25519, message lengths are
+signed.</p>
+<h2>Implementations</h2>
+<p>A single primitive can, and usually does, have multiple implementations.
+Each implementation is in its own subdirectory. The implementations are
+required to have exactly the same input-output behavior, and to some
+extent this is tested, although it is not yet formally verified (except
+for some components such as <code>crypto_sort</code>).</p>
+<p>Different implementations typically offer different tradeoffs between
+portability, simplicity, and efficiency. For example,
+<code>crypto_kem/6960119/vec</code> is portable; <code>crypto_kem/6960119/avx</code> is faster
+and less portable.</p>
+<p>Each unportable implementation has an <code>architectures</code> file. Each line in
+this file identifies a CPU instruction set (and ABI) where the
+implementation works. For example, <code>crypto_kem/6960119/avx/architectures</code>
+has one line</p>
+<pre><code>amd64 sse3 ssse3 sse41 popcnt avx bmi1 bmi2 avx2
+</code></pre>
+<p>meaning that the implementation works on CPUs that have the Intel/AMD
+64-bit instruction set with the SSE3, SSSE3, SSE4.1, POPCNT, AVX, BMI1,
+BMI2, and AVX2 instruction-set extensions. The top-level <code>compilers</code>
+directory shows (among other things) the allowed instruction-set names
+such as <code>bmi2</code>.</p>
+<p>At run time, libmceliece checks the CPU where it is running, and selects
+an implementation where <code>architectures</code> is compatible with that CPU.
+Each primitive makes its own selection once per program startup, using
+the compiler's <code>ifunc</code> mechanism (or <code>constructor</code> on platforms that do
+not support <code>ifunc</code>). This type of run-time selection means, for
+example, that an <code>amd64</code> CPU without AVX2 can share binaries with an
+<code>amd64</code> CPU with AVX2. However, correctness requires instruction sets to
+be preserved by migration across cores via the OS kernel, VM migration,
+etc.</p>
+<p>The compiler has a <code>target</code> mechanism that makes an <code>ifunc</code> selection
+based on CPU architectures. Instead of using the <code>target</code> mechanism,
+libmceliece uses a more sophisticated mechanism that also accounts for
+benchmarks collected in advance of compilation.</p>
+<h2>Compilers</h2>
+<p>libmceliece tries different C compilers for each implementation. For
+example, <code>compilers/default</code> lists the following compilers:</p>
+<pre><code>gcc -Wall -fPIC -fwrapv -O2
+clang -Wall -fPIC -fwrapv -Qunused-arguments -O2
+</code></pre>
+<p>Sometimes <code>gcc</code> produces better code, and sometimes <code>clang</code> produces
+better code.</p>
+<p>As another example, <code>compilers/amd64+sse3+ssse3+sse41+sse42+popcnt+avx+bmi1+bmi2+avx2</code>
+lists the following compilers:</p>
+<pre><code>gcc -Wall -fPIC -fwrapv -O2 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mbmi -mbmi2 -mpopcnt -mavx2 -mtune=haswell
+clang -Wall -fPIC -fwrapv -Qunused-arguments -O2 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mbmi -mbmi2 -mpopcnt -mavx2 -mtune=haswell
+</code></pre>
+<p>The <code>-mavx2</code> option tells these compilers that they are free to use the
+AVX2 instruction-set extension.</p>
+<p>Code compiled using the compilers in
+<code>compilers/amd64+sse3+ssse3+sse41+sse42+popcnt+avx+bmi1+bmi2+avx2</code>
+will be considered at run time by the libmceliece selection mechanism if
+the <code>supports()</code> function in
+<code>compilers/amd64+sse3+ssse3+sse41+sse42+popcnt+avx+bmi1+bmi2+avx2.c</code>
+returns nonzero. This function checks whether the run-time CPU supports
+AVX2 (and SSE3 and so on, and OSXSAVE with XMM/YMM being saved;
+<a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85100">https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85100</a>
+says that all versions of gcc until 2018 handled this incorrectly in
+<code>target</code>). Similar comments apply to other <code>compilers/*</code> files.</p>
+<p>If some compilers fail (for example, clang is not installed, or the
+compiler version is too old to support the compiler options used in
+libmceliece), the libmceliece compilation process will try its best to
+produce a working library using the remaining compilers, even if this
+means lower performance.</p>
+<h2>Trimming</h2>
+<p>By default, to reduce size of the compiled library, the libmceliece
+compilation process trims the library down to the implementations that
+are selected by libmceliece's selection mechanism.</p>
+<p>For example, if the selection mechanism decides that CPUs with AVX2
+should use <code>6960119/avx</code> with <code>clang</code> and that other CPUs should use
+<code>6960119/vec</code> with <code>gcc</code>, then trimming will remove <code>6960119/avx</code>
+compiled with <code>gcc</code> and <code>6960119/vec</code> compiled with <code>clang</code>.</p>
+<p>This trimming is handled at link time rather than compile time to
+increase the chance that, even if some implementations are broken by
+compiler "upgrades", the library will continue to build successfully.</p>
+<p>To avoid this trimming, pass the <code>--no-trim</code> option to <code>./configure</code>. 
+All implementations that compile are then included in the library,
+tested by <code>mceliece-test</code>, and measured by <code>mceliece-speed</code>. You'll want
+to avoid trimming if you're adding new instruction sets or new
+implementations (see below), so that you can run tests and benchmarks of
+code that isn't selected yet.</p>
+<h2>How to recompile after changes</h2>
+<p>If you make changes in the libmceliece source directory, the fully
+supported recompilation mechanism is to run <code>./configure</code> again to clean
+and repopulate the build directory, and then run <code>make</code> again to
+recompile everything.</p>
+<p>This can be on the scale of seconds if you have enough cores, but maybe
+you're developing on a slower machine. Three options are currently
+available to accelerate the edit-compile cycle:</p>
+<ul>
+<li>
+<p>There is an experimental <code>--no-clean</code> option to <code>./configure</code> that,
+     for some simple types of changes, can produce a successful build
+     without cleaning.</p>
+</li>
+<li>
+<p>Running <code>make</code> without <code>./configure</code> can work for some particularly
+     simple types of changes. However, not all dependencies are
+     currently expressed in <code>Makefile</code>, and some types of dependencies
+     that <code>./configure</code> understands would be difficult to express in the
+     <code>Makefile</code> language.</p>
+</li>
+<li>
+<p>You can disable the implementations you're not using by setting
+     sticky bits on the source directories for those implementations:
+     e.g., <code>chmod +t crypto_kem/*/avx</code>.</p>
+</li>
+</ul>
+<p>Make sure to reenable all implementations and do a full clean build if
+you're collecting data to add to the source <code>benchmarks</code> directory.</p>
+<h2>How to add new instruction sets</h2>
+<p>Adding another file <code>compilers/amd64+foo</code>, along with a <code>supports()</code>
+implementation in <code>compilers/amd64+foo.c</code>, will support a new
+instruction set. Do not assume that the new <code>foo</code> instruction set
+implies support for older instruction sets (the idea of "levels" of
+instruction sets); instead make sure to include the older instruction
+sets in <code>+</code> tags, as illustrated by
+<code>compilers/amd64+sse3+ssse3+sse41+sse42+popcnt+avx+bmi1+bmi2+avx2</code>.</p>
+<p>In the compiler options, always make sure to include <code>-fPIC</code> to support
+shared libraries, and <code>-fwrapv</code> to switch to a slightly less dangerous
+version of C.</p>
+<p>The <code>foo</code> tags don't have to be instruction sets. For example, if a CPU
+has the same instruction set but wants different optimizations because
+of differences in instruction timings, you can make a tag for those
+optimizations, using, e.g., CPU IDs or benchmarks in the corresponding
+<code>supports()</code> function to decide whether to enable those optimizations.
+Benchmarks tend to be more future-proof than a list of CPU IDs, but the
+time taken for benchmarks at program startup has to be weighed against
+the subsequent speedup from the resulting optimizations.</p>
+<p>To see how well libmceliece performs with the new compilers, run
+<code>mceliece-speed</code> on the target machine and look for the <code>foo</code> lines in
+the output. If the new performance is better than the performance shown
+on the <code>selected</code> lines:</p>
+<ul>
+<li>
+<p>Copy the <code>mceliece-speed</code> output into a file on the <code>benchmarks</code>
+     directory, typically named after the hostname of the target
+     machine.</p>
+</li>
+<li>
+<p>Run <code>./prioritize</code> in the top-level directory to create <code>priority</code>
+     files. These files tell libmceliece which implementations to select
+     for any given architecture.</p>
+</li>
+<li>
+<p>Reconfigure (again with <code>--no-trim</code>), recompile, rerun
+     <code>mceliece-test</code>, and rerun <code>mceliece-speed</code> to check that the
+     <code>selected</code> lines now use the <code>foo</code> compiler.</p>
+</li>
+</ul>
+<p>If the <code>foo</code> implementation is outperformed by other implementations,
+then these steps don't help except for documenting this fact. The same
+implementation might turn out to be useful for subsequent <code>foo</code> CPUs.</p>
+<h2>How to add new implementations</h2>
+<p>Taking full advantage of the <code>foo</code> instruction set usually requires
+writing new implementations. Sometimes there are also ideas for taking
+better advantage of existing instruction sets.</p>
+<p>Structurally, adding a new implementation of a primitive is a simple
+matter of adding a new subdirectory with the code for that
+implementation. Most of the work is optimizing the use of <code>foo</code>
+intrinsics in <code>.c</code> files or <code>foo</code> instructions in <code>.S</code> files. Make sure
+to include an <code>architectures</code> file saying, e.g., <code>amd64 avx2 foo</code>.</p>
+<p>Names of implementation directories can use letters, digits, dashes, and
+underscores. Do not use two implementation names that are the same when
+dashes and underscores are removed.</p>
+<p>All <code>.c</code> and <code>.S</code> files in the implementation directory are compiled and
+linked. There is no need to edit a separate list of these files. You can
+also use <code>.h</code> files via the C preprocessor.</p>
+<p>If an implementation is actually more restrictive than indicated in
+<code>architectures</code> then the resulting compiled library will fail on some
+machines (although perhaps that implementation will not be used by
+default). Putting unnecessary restrictions into <code>architectures</code> will not
+create such failures, but can unnecessarily limit performance.</p>
+<p>Some, but not all, mistakes in <code>architectures</code> will produce warnings
+from the <code>checkinsns</code> script that runs automatically when libmceliece is
+compiled. Running the <code>mceliece-test</code> program tries all implementations,
+but only on the CPU where <code>mceliece-test</code> is being run;
+also, <code>mceliece-test</code> does not guarantee code coverage.</p>
+<p><code>amd64</code> implies little-endian, and implies architectural support for
+unaligned loads and stores. Beware, however, that the Intel/AMD
+vectorized <code>load</code>/<code>store</code> intrinsics (and the underlying <code>movdqa</code>
+instruction) require alignment; if in doubt, use <code>loadu</code>/<code>storeu</code> (and
+<code>movdqu</code>). The <code>mceliece-test</code> program checks unaligned inputs and
+outputs, but can miss issues with unaligned stack variables.</p>
+<p>To test your implementation, compile everything, check for compiler
+warnings and errors, run <code>mceliece-test</code> (or just <code>mceliece-test xof</code> to
+test a <code>crypto_xof</code> implementation), and check for a line saying <code>all
+tests succeeded</code>. To use AddressSanitizer (for catching, at run time,
+buffer overflows in C code), add <code>-fsanitize=address</code> to the <code>gcc</code> and
+<code>clang</code> lines in <code>compilers/*</code>; you may also have to add <code>return;</code> at
+the beginning of the <code>limits()</code> function in <code>command/limits.inc</code>.</p>
+<p>To see the performance of your implementation, run <code>mceliece-speed</code>. If
+the new performance is better than the performance shown on the
+<code>selected</code> lines, follow the same steps as for a new instruction set:
+copy the <code>mceliece-speed</code> output into a file on the <code>benchmarks</code>
+directory; run <code>./prioritize</code> in the top-level directory to create
+<code>priority</code> files; reconfigure (again with <code>--no-trim</code>); recompile; rerun
+<code>mceliece-test</code>; rerun <code>mceliece-speed</code>; check that the <code>selected</code> lines
+now use the new implementation.</p>
+<h2>How to handle namespacing</h2>
+<p>As in SUPERCOP and NaCl, to call <code>crypto_sort_int32()</code>, you have to
+include <code>crypto_sort_int32.h</code>; but to write an implementation of
+<code>crypto_sort_int32()</code>, you have to instead include <code>crypto_sort.h</code> and
+define <code>crypto_sort</code>. Similar comments apply to other primitives.</p>
+<p>The function name that's actually linked might end up as, e.g.,
+<code>libmceliece_sort_int32_avx2_C2</code> where <code>avx2</code> indicates the
+implementation and <code>C2</code> indicates the compiler. Don't try to build this
+name into your implementation.</p>
+<p>If you have another global symbol <code>x</code> (for example, a non-<code>static</code>
+function in a <code>.c</code> file, or a non-<code>static</code> variable outside functions in
+a <code>.c</code> file), you have to replace it with <code>CRYPTO_NAMESPACE(x)</code>, for
+example with <code>#define x CRYPTO_NAMESPACE(x)</code>.</p>
+<p>For global symbols in <code>.S</code> files and <code>shared-*.c</code> files, use
+<code>CRYPTO_SHARED_NAMESPACE</code> instead of <code>CRYPTO_NAMESPACE</code>. For <code>.S</code> files
+that define both <code>x</code> and <code>_x</code> to handle platforms where <code>x</code> in C is <code>_x</code>
+in assembly, use <code>CRYPTO_SHARED_NAMESPACE(x)</code> and
+<code>_CRYPTO_SHARED_NAMESPACE(x)</code>; <code>CRYPTO_SHARED_NAMESPACE(_x)</code> is not
+sufficient.</p>
+<p>libmceliece includes a mechanism to recognize files that are copied
+across implementations (possibly of different primitives) and to unify
+those into a file compiled only once, reducing the overall size of the
+compiled library and possibly improving cache utilization. To request
+this mechanism, include a line</p>
+<pre><code>// linker define x
+</code></pre>
+<p>for any global
+symbol <code>x</code> defined in the file, and a line</p>
+<pre><code>// linker use x
+</code></pre>
+<p>for any
+global symbol <code>x</code> used in the file from the same implementation (not
+<code>crypto_*</code> subroutines that you're calling, <code>randombytes</code>, etc.). This
+mechanism tries very hard, perhaps too hard, to avoid improperly
+unifying files: for example, even a slight difference in a <code>.h</code> file
+included by a file defining a used symbol will disable the mechanism.</p>
+<p>Typical namespacing mistakes will produce either linker failures or
+warnings from the <code>checknamespace</code> script that runs automatically when
+libmceliece is compiled.</p><hr><font size=1><b>Version:</b>
+This is version 2026.06.11 of the "Internals" web page.
+</font>
+</div>
+</body>
+</html>

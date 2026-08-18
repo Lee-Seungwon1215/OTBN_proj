@@ -1,0 +1,7 @@
+ARM optimizations
+include faster shake256 software
+more automatic code generation
+compressed private-key formats: compress, decompress, decompress+verify
+SECDED for private keys (and other data), for example using libsecded
+allow shared+unified for API functions (requires tweaking dispatch)
+more work on full functional verification
